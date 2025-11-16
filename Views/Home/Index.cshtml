@@ -38,11 +38,9 @@
     <!-- Controls -->
     <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Previous</span>
     </button>
     <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
         <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Next</span>
     </button>
 </div>
 
@@ -51,6 +49,68 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold text-primary"><i class="bi bi-shop-window me-2"></i>Danh sách nhà hàng</h2>
     </div>
+
+    <!-- Bộ lọc -->
+    <form id="filterForm" method="get" class="filter-container d-flex align-items-center mb-4">
+        <!-- Wrapper thanh cuộn + mũi tên -->
+        <div class="filter-wrapper position-relative flex-grow-1 me-2">
+            <!-- Nút cuộn trái -->
+            <button type="button" class="scroll-btn left">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <!-- Thanh cuộn -->
+            <div class="filter-bar d-flex flex-nowrap gap-2 px-3 align-items-center">
+                <input type="text" name="search" class="form-control filter-item search-box"
+                       placeholder="Tên quán..." value="@Context.Request.Query["search"]" />
+
+                <select name="city" class="form-select filter-item select-box">
+                    <option value="">Thành phố</option>
+                    @foreach (var c in ViewBag.Cities)
+                    {
+                        <option value="@c" selected="@(Context.Request.Query["city"] == c)">@c</option>
+                    }
+                </select>
+
+                <input type="text" name="address" class="form-control filter-item address-box"
+                       placeholder="Địa chỉ..." value="@Context.Request.Query["address"]" />
+
+                <select name="cuisine" class="form-select filter-item select-box">
+                    <option value="">Loại món</option>
+                    @foreach (var c in ViewBag.Cuisines)
+                    {
+                        <option value="@c" selected="@(Context.Request.Query["cuisine"] == c)">@c</option>
+                    }
+                </select>
+
+                <select name="rating" class="form-select filter-item select-box">
+                    <option value="">Rating</option>
+                    <option value="1">1⭐+</option>
+                    <option value="2">2⭐+</option>
+                    <option value="3">3⭐+</option>
+                    <option value="4">4⭐+</option>
+                    <option value="5">5⭐</option>
+                </select>
+
+                <input type="number" name="minPrice" class="form-control filter-item price-box"
+                       placeholder="Giá min" value="@Context.Request.Query["minPrice"]" />
+                <input type="number" name="maxPrice" class="form-control filter-item price-box"
+                       placeholder="Giá max" value="@Context.Request.Query["maxPrice"]" />
+            </div>
+
+            <!-- Nút cuộn phải -->
+            <button type="button" class="scroll-btn right">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- Nút Lọc ngoài cùng -->
+        <button class="btn btn-primary btn-filter" type="submit">
+            <i class="bi bi-funnel"></i> Lọc
+        </button>
+    </form>
+
+    <!-- Danh sách nhà hàng -->
     <div class="row">
         @foreach (var r in Model)
         {
@@ -84,8 +144,11 @@
                         </div>
                         <p class="text-muted mb-1"><i class="bi bi-geo-alt text-danger"></i> @r.City</p>
                         <p class="mb-1"><i class="bi bi-egg-fried text-info"></i> @r.CuisineType</p>
-                        <p class="fw-semibold text-success mb-3"><i class="bi bi-cash-coin"></i> @r.AveragePrice.ToString("C")</p>
-                        <a asp-controller="Home" asp-action="Detail" asp-route-id="@r.Id" class="btn btn-outline-primary w-100 btn-rounded mb-2">
+                        <p class="fw-semibold text-success mb-3">
+                            <i class="bi bi-cash-coin"></i> @r.AveragePrice.ToString("C")
+                        </p>
+                        <a asp-controller="Home" asp-action="Detail" asp-route-id="@r.Id"
+                           class="btn btn-outline-primary w-100 btn-rounded mb-2">
                             <i class="bi bi-eye"></i> Xem chi tiết
                         </a>
                     </div>
@@ -101,15 +164,90 @@
     }
 
     .hover-card {
-        transition: all 0.3s ease;
+        transition: 0.3s;
     }
 
-        .hover-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-        }
-
-    .bi-star, .bi-star-fill, .bi-star-half {
-        font-size: 1.1rem;
+    .hover-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
     }
+
+    .filter-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filter-wrapper {
+        position: relative;
+        flex-grow: 1;
+        height: 50px;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #f8f9fa;
+    }
+
+    .filter-bar {
+        overflow-x: auto;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        height: 100%;
+        padding: 0 36px; /* tạo khoảng trống cho nút cuộn */
+    }
+
+    .filter-bar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filter-item {
+        flex: 0 0 auto;
+    }
+
+    .search-box { width: 220px; max-width: 220px; }
+    .address-box { width: 180px; max-width: 180px; }
+    .select-box { width: 160px; max-width: 160px; }
+    .price-box { width: 120px; max-width: 120px; }
+
+    .btn-filter {
+        width: 120px;
+        flex-shrink: 0;
+    }
+
+    .scroll-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        background: rgba(255,255,255,0.9);
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .scroll-btn.left { left: 0; }
+    .scroll-btn.right { right: 0; }
 </style>
+
+<script>
+    const filterBar = document.querySelector('.filter-bar');
+    document.querySelector('.scroll-btn.left').addEventListener('click', () => {
+        filterBar.scrollBy({ left: -200, behavior: 'smooth' });
+    });
+    document.querySelector('.scroll-btn.right').addEventListener('click', () => {
+        filterBar.scrollBy({ left: 200, behavior: 'smooth' });
+    });
+
+    // Cuộn mượt khi click "Khám phá ngay" trong Hero
+    document.querySelectorAll('.btn-scroll').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const targetId = e.currentTarget.getAttribute('data-target');
+            document.getElementById(targetId).scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+</script>

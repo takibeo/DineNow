@@ -106,14 +106,23 @@ namespace DoAnChuyenNganh.Controllers
                     existing.ImageUrl = "/images/restaurants/" + fileName;
                 }
 
+                // Cập nhật tất cả các trường từ form
                 existing.Name = restaurant.Name;
                 existing.Description = restaurant.Description;
+                existing.City = restaurant.City;
+                existing.CuisineType = restaurant.CuisineType;
+                existing.Address = restaurant.Address;
+                existing.AveragePrice = restaurant.AveragePrice;
 
-                // ✅ Nếu Staff chỉnh sửa => cần duyệt lại
+                // Nếu Staff chỉnh sửa => cần duyệt lại
                 if (User.IsInRole("Staff"))
                 {
                     existing.IsApproved = false;
                     TempData["Success"] = "Đã gửi yêu cầu chỉnh sửa, chờ admin phê duyệt.";
+                }
+                else
+                {
+                    existing.IsApproved = true;
                 }
 
                 _context.Update(existing);
@@ -123,6 +132,7 @@ namespace DoAnChuyenNganh.Controllers
 
             return View(restaurant);
         }
+
 
 
         public async Task<IActionResult> Delete(int id)

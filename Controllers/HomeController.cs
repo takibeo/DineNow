@@ -19,12 +19,59 @@ namespace DoAnChuyenNganh.Controllers
         }
 
         // Trang chủ hiển thị danh sách nhà hàng
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(
+    string? search,
+    string? city,
+    string? address,
+    string? cuisine,
+    int? rating,
+    decimal? minPrice,
+    decimal? maxPrice)
         {
-            // Chỉ lấy nhà hàng đã được duyệt
-            var restaurants = await _context.Restaurants
+            var query = _context.Restaurants
                 .Include(r => r.Reviews)
                 .Where(r => r.IsApproved == true)
+                .AsQueryable();
+
+            // 🔎 Tìm kiếm theo tên hoặc mô tả
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(r =>
+                    r.Name.Contains(search) ||
+                    r.Description.Contains(search)
+                );
+            }
+
+            // 🏙 Thành phố
+            if (!string.IsNullOrEmpty(city))
+                query = query.Where(r => r.City.Contains(city));
+
+            // 📍 Địa chỉ
+            if (!string.IsNullOrEmpty(address))
+                query = query.Where(r => r.Address.Contains(address));
+
+            // 🍱 Loại món
+            if (!string.IsNullOrEmpty(cuisine))
+                query = query.Where(r => r.CuisineType.Contains(cuisine));
+
+            // ⭐ Rating
+            if (rating.HasValue)
+            {
+                query = query.Where(r =>
+                    r.Reviews.Any() &&
+                    r.Reviews.Average(rv => rv.Rating) >= rating.Value
+                );
+            }
+
+            // 💰 Giá trung bình
+            if (minPrice.HasValue)
+                query = query.Where(r => r.AveragePrice >= minPrice.Value);
+
+            if (maxPrice.HasValue)
+                query = query.Where(r => r.AveragePrice <= maxPrice.Value);
+
+            // Lấy data + rating trung bình
+            var restaurants = await query
                 .Select(r => new
                 {
                     Restaurant = r,
@@ -32,14 +79,16 @@ namespace DoAnChuyenNganh.Controllers
                 })
                 .ToListAsync();
 
-            // Truyền trung bình đánh giá sang ViewBag
-            ViewBag.RestaurantRatings = restaurants.ToDictionary(x => x.Restaurant.Id, x => x.AverageRating);
+            // Truyền rating sang view
+            ViewBag.RestaurantRatings = restaurants.ToDictionary(
+                x => x.Restaurant.Id, x => x.AverageRating);
 
-            // Trả về danh sách nhà hàng
+            // Dropdown dữ liệu
+            ViewBag.Cities = await _context.Restaurants.Select(r => r.City).Distinct().ToListAsync();
+            ViewBag.Cuisines = await _context.Restaurants.Select(r => r.CuisineType).Distinct().ToListAsync();
+
             return View(restaurants.Select(x => x.Restaurant).ToList());
         }
-
-
 
         // Trang chi tiết (cho người dùng xem, không cần đăng nhập)
         public async Task<IActionResult> Detail(int id)
