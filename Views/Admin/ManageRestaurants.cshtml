@@ -1,0 +1,235 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.Restaurant>
+
+@{
+    ViewData["Title"] = "Quản lý nhà hàng";
+    var restaurants = ViewBag.Restaurants as IEnumerable<dynamic>;
+}
+
+<!-- ✅ SweetAlert2 & Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+
+<style>
+    .fade-in {
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    table tbody tr:hover {
+        background-color: #f1f9ff;
+        transform: scale(1.01);
+        transition: all 0.2s ease-in-out;
+    }
+
+    .btn {
+        transition: all 0.2s ease-in-out;
+    }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+    h2 {
+        font-weight: 600;
+        color: #333;
+        text-shadow: 1px 1px 2px #ddd;
+    }
+</style>
+
+<div class="container mt-4 fade-in">
+    <h2 class="mb-4 text-center">
+        <i class="bi bi-shop me-2 text-primary"></i>Danh sách nhà hàng trong hệ thống
+    </h2>
+
+    <table class="table table-bordered table-striped align-middle text-center shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Tên nhà hàng</th>
+                <th>Nhân viên quản lý</th>
+                <th>Trạng thái</th>
+                <th>Chức năng</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (restaurants != null && restaurants.Any())
+            {
+                foreach (var item in restaurants)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td>@item.Name</td>
+                        <td>
+                            @if (item.Staffs != null && item.Staffs.Count > 0)
+                            {
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var staff in item.Staffs)
+                                    {
+                                        <li>👤 @staff</li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <span class="text-muted fst-italic">Chưa có nhân viên</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.IsApproved)
+                            {
+                                <span class="badge bg-success">Đã duyệt</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Chờ duyệt</span>
+                            }
+                        </td>
+                        <td>
+
+                            <!-- ✅ Duyệt nhà hàng (nếu chưa duyệt) -->
+                            @if (!item.IsApproved)
+                            {
+                                <button class="btn btn-sm btn-success me-1"
+                                        onclick="approveRestaurant('@item.Id', '@item.Name')">
+                                    <i class="bi bi-check2-circle"></i> Duyệt
+                                </button>
+                            }
+
+                            <a href="@Url.Action("Detail", "Home", new { id = item.Id })"
+                               class="btn btn-sm btn-info me-1">
+                                <i class="bi bi-eye"></i> Xem
+                            </a>
+
+
+                            <!-- ✏️ Sửa -->
+                            <a href="@Url.Action("Edit", "Restaurant", new { id = item.Id })"
+                               class="btn btn-sm btn-warning me-1">
+                                <i class="bi bi-pencil-square"></i> Sửa
+                            </a>
+
+                            <!-- ❌ Xóa -->
+                            <button type="button"
+                                    class="btn btn-sm btn-danger"
+                                    onclick="confirmDelete('@item.Id', '@item.Name')">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5" class="text-muted fst-italic">Không có dữ liệu</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // ✅ Xác nhận xóa bằng SweetAlert2
+    function confirmDelete(id, name) {
+        Swal.fire({
+            title: "Xác nhận xóa?",
+            text: `Bạn có chắc muốn xóa nhà hàng "${name}" không?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Xóa ngay!",
+            cancelButtonText: "Hủy"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/Admin/DeleteRestaurant/${id}`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Đã xóa!",
+                            text: `Nhà hàng "${name}" đã được xóa.`,
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire("Lỗi!", "Không thể xóa nhà hàng này.", "error");
+                    }
+                });
+            }
+        });
+    }
+
+    // ✅ Phê duyệt nhà hàng
+    function approveRestaurant(id, name) {
+        Swal.fire({
+            title: "Duyệt nhà hàng?",
+            text: `Bạn có chắc muốn duyệt "${name}" để hiển thị lên hệ thống?`,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#198754",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Duyệt ngay!",
+            cancelButtonText: "Hủy"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/Admin/ApproveRestaurant/${id}`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Đã duyệt!",
+                            text: `"${name}" đã được phê duyệt.`,
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire("Lỗi!", "Không thể duyệt nhà hàng.", "error");
+                    }
+                });
+            }
+        });
+    }
+
+    // 🎉 Hiển thị thông báo từ TempData
+    @if (TempData["Success"] != null)
+    {
+        <text>
+            Swal.fire({
+                icon: "success",
+                title: "Thành công!",
+                text: "@TempData["Success"]",
+                showConfirmButton: false,
+                timer: 2000
+            });
+        </text>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <text>
+            Swal.fire({
+                icon: "error",
+                title: "Lỗi!",
+                text: "@TempData["Error"]",
+                showConfirmButton: true
+            });
+        </text>
+    }
+</script>

@@ -1,0 +1,115 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.Restaurant>
+@{
+    ViewData["Title"] = "Trang chủ";
+}
+
+<!-- Hero Carousel -->
+<div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-inner">
+        <div class="carousel-item active">
+            <div class="hero-banner" style="background-image: url('/images/hero1.jpg');">
+                <div class="hero-content">
+                    <h1>Chọn nhà hàng yêu thích của bạn</h1>
+                    <p>Đặt bàn nhanh chóng, dễ dàng mọi lúc mọi nơi</p>
+                    <button class="btn btn-primary btn-lg btn-scroll" data-target="restaurantsSection">Khám phá ngay</button>
+                </div>
+            </div>
+        </div>
+        <div class="carousel-item">
+            <div class="hero-banner" style="background-image: url('/images/hero2.jpg');">
+                <div class="hero-content">
+                    <h1>Thưởng thức ẩm thực tuyệt vời</h1>
+                    <p>Hàng trăm nhà hàng, nhiều lựa chọn, phục vụ tận nơi</p>
+                    <button class="btn btn-primary btn-lg btn-scroll" data-target="restaurantsSection">Khám phá ngay</button>
+                </div>
+            </div>
+        </div>
+        <div class="carousel-item">
+            <div class="hero-banner" style="background-image: url('/images/hero3.jpg');">
+                <div class="hero-content">
+                    <h1>Đặt bàn dễ dàng, nhanh chóng</h1>
+                    <p>Tiết kiệm thời gian, trải nghiệm tiện lợi mọi lúc</p>
+                    <button class="btn btn-primary btn-lg btn-scroll" data-target="restaurantsSection">Khám phá ngay</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+</div>
+
+<!-- Restaurants Section -->
+<div id="restaurantsSection" class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="bi bi-shop-window me-2"></i>Danh sách nhà hàng</h2>
+    </div>
+    <div class="row">
+        @foreach (var r in Model)
+        {
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card border-0 shadow-lg rounded-4 h-100 hover-card">
+                    <img src="@r.ImageUrl" class="card-img-top rounded-top-4" alt="@r.Name" style="height:220px; object-fit:cover;" />
+                    <div class="card-body">
+                        <h5 class="fw-bold text-dark">@r.Name</h5>
+                        @{
+                            var avgRating = ViewBag.RestaurantRatings.ContainsKey(r.Id)
+                            ? (double)ViewBag.RestaurantRatings[r.Id]
+                            : 0;
+                        }
+                        <div class="mb-2">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                if (i <= avgRating)
+                                {
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                }
+                                else if (i - avgRating < 1)
+                                {
+                                    <i class="bi bi-star-half text-warning"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-star text-warning"></i>
+                                }
+                            }
+                            <span class="text-muted">(@avgRating.ToString("0.0"))</span>
+                        </div>
+                        <p class="text-muted mb-1"><i class="bi bi-geo-alt text-danger"></i> @r.City</p>
+                        <p class="mb-1"><i class="bi bi-egg-fried text-info"></i> @r.CuisineType</p>
+                        <p class="fw-semibold text-success mb-3"><i class="bi bi-cash-coin"></i> @r.AveragePrice.ToString("C")</p>
+                        <a asp-controller="Home" asp-action="Detail" asp-route-id="@r.Id" class="btn btn-outline-primary w-100 btn-rounded mb-2">
+                            <i class="bi bi-eye"></i> Xem chi tiết
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .btn-rounded {
+        border-radius: 30px;
+    }
+
+    .hover-card {
+        transition: all 0.3s ease;
+    }
+
+        .hover-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+    .bi-star, .bi-star-fill, .bi-star-half {
+        font-size: 1.1rem;
+    }
+</style>

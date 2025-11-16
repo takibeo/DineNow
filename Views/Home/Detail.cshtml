@@ -1,0 +1,251 @@
+﻿@model DoAnChuyenNganh.Models.Restaurant
+
+@{
+    ViewData["Title"] = "Chi tiết nhà hàng";
+}
+
+<div class="container py-5">
+    <div class="card shadow-lg border-0 rounded-4 overflow-hidden fade-in">
+        <div class="row g-0">
+            <div class="col-md-5">
+                <img src="@Model.ImageUrl" alt="@Model.Name"
+                     class="img-fluid h-100 w-100 object-fit-cover" style="object-fit:cover;" />
+            </div>
+            <div class="col-md-7 p-5">
+                <h2 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-shop me-2"></i>@Model.Name
+                </h2>
+
+                <p class="mb-2"><i class="bi bi-geo-alt-fill text-danger me-2"></i><strong>Địa chỉ:</strong> @Model.Address, @Model.City</p>
+                <p class="mb-2"><i class="bi bi-telephone-fill text-success me-2"></i><strong>Điện thoại:</strong> @Model.Phone</p>
+                <p class="mb-2"><i class="bi bi-clock-fill text-warning me-2"></i><strong>Giờ mở cửa:</strong> @Model.OpenHours</p>
+                <p class="mb-2"><i class="bi bi-egg-fried me-2 text-info"></i><strong>Loại món:</strong> @Model.CuisineType</p>
+                <p class="mb-4"><i class="bi bi-cash-coin text-secondary me-2"></i><strong>Giá trung bình:</strong> @Model.AveragePrice.ToString("C")</p>
+
+                <h5 class="fw-semibold mt-3 mb-2 text-secondary">Mô tả</h5>
+                <p class="text-muted">@Model.Description</p>
+
+                <div class="mt-4 d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-warning btn-rounded"
+                            data-bs-toggle="modal" data-bs-target="#menuModal">
+                        <i class="bi bi-list-ul"></i> Xem thực đơn
+                    </button>
+
+                    <a asp-controller="Reservation" asp-action="Create" asp-route-restaurantId="@Model.Id"
+                       class="btn btn-success btn-rounded btn-book-table">
+                        <i class="bi bi-calendar-check"></i> Đặt bàn ngay
+                    </a>
+
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-rounded">
+                        <i class="bi bi-arrow-left"></i> Quay lại trang chủ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- 🔹 Đánh giá -->
+<hr class="my-5" />
+<div class="container">
+    <h4 class="fw-bold text-primary mb-4">
+        <i class="bi bi-star-fill text-warning me-2"></i> Đánh giá & nhận xét
+    </h4>
+
+    @if (Model.Reviews != null && Model.Reviews.Any())
+    {
+        <div class="list-group mb-4">
+            @foreach (var review in Model.Reviews.OrderByDescending(r => r.CreatedAt))
+            {
+                <div class="list-group-item border-0 shadow-sm mb-3 rounded-3 p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>@(review.User?.FullName ?? "Người dùng")</strong>
+                        <small class="text-muted">@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                    </div>
+                    <div class="text-warning my-1">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            if (i <= review.Rating)
+                            {
+                                <i class="bi bi-star-fill"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-star"></i>
+                            }
+                        }
+                    </div>
+                    <p class="mb-0 text-secondary">@review.Comment</p>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="text-muted fst-italic">Chưa có đánh giá nào cho nhà hàng này.</p>
+    }
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <div class="card shadow-sm rounded-4 p-4">
+            <form asp-action="AddReview" method="post">
+                <input type="hidden" name="restaurantId" value="@Model.Id" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Chọn số sao:</label>
+                    <div id="star-rating" class="text-warning fs-4">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <i class="bi bi-star" data-value="@i" style="cursor:pointer;"></i>
+                        }
+                    </div>
+                    <input type="hidden" id="rating" name="rating" value="0" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nhận xét:</label>
+                    <textarea class="form-control" name="comment" rows="3" placeholder="Viết cảm nhận của bạn..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-send-fill me-1"></i> Gửi đánh giá
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mt-3">
+            <a asp-controller="Account" asp-action="Login" class="text-primary">Đăng nhập</a> để viết đánh giá của bạn.
+        </p>
+    }
+</div>
+
+<!-- 🔹 Modal thực đơn -->
+<div class="modal fade" id="menuModal" tabindex="-1" aria-labelledby="menuModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold" id="menuModalLabel">
+                    <i class="bi bi-egg-fried me-2"></i>Thực đơn của @Model.Name
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+ @if (Model.MenuItems != null && Model.MenuItems.Any())
+{
+    {
+        // ✅ Danh sách thứ tự ưu tiên cho các danh mục
+        var categories = new List<string> { "Khai vị", "Món chính", "Tráng miệng", "Nước uống" };
+
+        // ✅ Hàm xếp thứ tự danh mục
+        Func<string, int> getIndex = (key) =>
+        {
+            var k = string.IsNullOrEmpty(key) ? "Khác" : key;
+            var idx = categories.IndexOf(k);
+            return idx == -1 ? int.MaxValue : idx;
+        };
+
+        // ✅ Nhóm món ăn theo danh mục
+        var groupedMenu = Model.MenuItems
+            .GroupBy(m => string.IsNullOrEmpty(m.Category) ? "Khác" : m.Category)
+            .OrderBy(g => getIndex(g.Key));
+
+        <h4 class="fw-bold text-primary mt-5 mb-4 fade-in-up">
+            <i class="bi bi-list-ul me-2"></i>Thực đơn
+        </h4>
+
+        // ✅ Hiển thị từng nhóm danh mục
+        foreach (var group in groupedMenu)
+        {
+            <h5 class="mt-4 mb-3 text-warning fw-bold">
+                <i class="bi bi-tag-fill me-2"></i>@group.Key
+            </h5>
+
+            <div class="row">
+                @foreach (var item in group)
+                {
+                                        <div class="col-md-4 mb-4 fade-in-up">
+                                            <div class="card border-0 shadow-sm rounded-4 h-100">
+                                                <img src="@item.ImageUrl" alt="@item.Name"
+                                                     class="card-img-top rounded-top-4"
+                                                     style="height:250px; object-fit:cover;" />
+
+                                                @if (item.Category != "Menu ảnh")
+                                                {
+                                                    <div class="card-body">
+                                                        <h6 class="fw-semibold text-dark">@item.Name</h6>
+                                                        @if (!string.IsNullOrEmpty(item.Description))
+                                                        {
+                                                            <p class="text-muted small">@item.Description</p>
+                                                        }
+                                                        <p class="fw-bold text-success mb-0">
+                                                            <i class="bi bi-currency-dollar"></i> @item.Price.ToString("C")
+                                                        </p>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                }
+            </div>
+        }
+    }
+}
+else
+{
+    <p class="text-muted fst-italic">Chưa có món ăn nào trong thực đơn.</p>
+}
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const stars = document.querySelectorAll("#star-rating i");
+            const ratingInput = document.getElementById("rating");
+
+            if (stars && ratingInput) {
+                stars.forEach(star => {
+                    star.addEventListener("click", () => {
+                        const value = parseInt(star.getAttribute("data-value"));
+                        ratingInput.value = value;
+
+                        stars.forEach((s, i) => {
+                            if (i < value) {
+                                s.classList.add("bi-star-fill");
+                                s.classList.remove("bi-star");
+                            } else {
+                                s.classList.add("bi-star");
+                                s.classList.remove("bi-star-fill");
+                            }
+                        });
+                    });
+                });
+            }
+
+            // 🔸 Bộ lọc danh mục trong modal
+            const filterButtons = document.querySelectorAll("#menuFilter .nav-link");
+            filterButtons.forEach(button => {
+                button.addEventListener("click", () => {
+                    filterButtons.forEach(b => b.classList.remove("active"));
+                    button.classList.add("active");
+
+                    const targetId = button.getAttribute("data-target");
+                    const section = document.querySelector(targetId);
+                    if (section) {
+                        section.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                });
+            });
+        });
+    </script>
+}

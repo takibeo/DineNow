@@ -1,0 +1,40 @@
+﻿@model DoAnChuyenNganh.Models.User
+@{
+    ViewData["Title"] = "Chỉnh sửa tài khoản";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">@ViewData["Title"]</h2>
+
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label"></label>
+            <input asp-for="FullName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="PhoneNumber" class="form-label"></label>
+            <input asp-for="PhoneNumber" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Address" class="form-label"></label>
+            <input asp-for="Address" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label>Vai trò</label>
+            <select name="role" class="form-select">
+                @foreach (var r in ViewBag.Roles as List<string>)
+                {
+                        <option value="@r" selected="@(r == ViewBag.UserRole)"> @r </option>
+
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-success">Lưu thay đổi</button>
+        <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+    </form>
+</div>

@@ -1,0 +1,86 @@
+﻿@model DoAnChuyenNganh.Models.ViewModels.EditProfileViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa thông tin cá nhân";
+}
+
+<div class="container mt-5" style="max-width: 800px;">
+    <div class="card shadow border-0 rounded-4">
+        <div class="card-body p-4">
+            <h3 class="text-center mb-4">@ViewData["Title"]</h3>
+
+            @if (ViewBag.Message != null)
+            {
+                <div class="alert alert-success">@Html.Raw(ViewBag.Message)</div>
+            }
+
+            @if (ViewBag.PasswordMessage != null)
+            {
+                <div class="alert alert-success">@Html.Raw(ViewBag.PasswordMessage)</div>
+            }
+
+            @if (ViewBag.PasswordError != null)
+            {
+                <div class="alert alert-danger">@Html.Raw(ViewBag.PasswordError)</div>
+            }
+
+            <form asp-action="EditProfile" method="post">
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Address" class="form-label"></label>
+                        <input asp-for="Address" class="form-control" />
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="DateOfBirth" class="form-label"></label>
+                        <input asp-for="DateOfBirth" class="form-control" type="date" />
+                        <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="PhoneNumber" class="form-label"></label>
+                        <input asp-for="PhoneNumber" class="form-control" type="tel" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <hr />
+
+                <h5 class="mb-3">🔒 Đổi mật khẩu (tùy chọn)</h5>
+
+                <div class="mb-3">
+                    <label asp-for="OldPassword" class="form-label"></label>
+                    <input asp-for="OldPassword" class="form-control" type="password" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="NewPassword" class="form-label"></label>
+                    <input asp-for="NewPassword" class="form-control" type="password" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control" type="password" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2">
+                    💾 Lưu thay đổi
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

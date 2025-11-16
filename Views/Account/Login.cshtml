@@ -1,0 +1,77 @@
+﻿@model DoAnChuyenNganh.Models.ViewModels.LoginViewModel
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 85vh;">
+    <div class="card shadow-lg border-0 rounded-4 p-4" style="max-width: 420px; width: 100%;">
+
+        <h3 class="text-center mb-4 fw-bold">
+            <i class="bi bi-person-circle me-2"></i>Đăng nhập
+        </h3>
+
+        <form asp-action="Login" method="post">
+
+            <!-- Email -->
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label fw-semibold"></label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input asp-for="Email" class="form-control" placeholder="Nhập email của bạn" />
+                </div>
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <!-- Password -->
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label fw-semibold"></label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                    <input asp-for="Password" id="loginPassword" type="password" class="form-control" placeholder="Nhập mật khẩu" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('loginPassword', 'loginToggleIcon')">
+                        <i id="loginToggleIcon" class="bi bi-eye-fill"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+
+            <!-- Remember me -->
+            <div class="form-check mb-3">
+                <input asp-for="RememberMe" class="form-check-input" />
+                <label asp-for="RememberMe" class="form-check-label"></label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Đăng nhập
+            </button>
+
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="/Account/ForgotPassword" class="text-decoration-none">
+                Quên mật khẩu?
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<!-- Validation scripts -->
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+<script>
+    function togglePassword(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("bi-eye-fill");
+            icon.classList.add("bi-eye-slash-fill");
+        } else {
+            input.type = "password";
+            icon.classList.remove("bi-eye-slash-fill");
+            icon.classList.add("bi-eye-fill");
+        }
+    }
+</script>
+

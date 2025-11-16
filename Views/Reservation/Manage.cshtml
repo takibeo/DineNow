@@ -1,0 +1,147 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.Reservation>
+
+@{
+    ViewData["Title"] = "Quản lý đơn đặt bàn";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container mt-4">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">Không có đơn đặt bàn nào.</div>
+    }
+    else
+    {
+        <table class="table table-hover table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Khách hàng</th>
+                    <th>Nhà hàng</th>
+                    <th>Thời gian</th>
+                    <th>Số khách</th>
+                    <th>Trạng thái</th>
+                    <th>Ghi chú</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td>@item.User?.FullName</td>
+                        <td>@item.Restaurant?.Name</td>
+                        <td>@item.ReservationDate.ToString("HH:mm dd/MM/yyyy")</td>
+                        <td>@item.NumberOfGuests</td>
+                        <td>
+                            @switch (item.Status)
+                            {
+                                case "Pending":
+                                    <span class="badge bg-warning text-dark">Chờ xác nhận</span>
+                                    break;
+                                case "Confirmed":
+                                    <span class="badge bg-success">Đã xác nhận</span>
+                                    break;
+                                case "Cancelled":
+                                    <span class="badge bg-danger">Đã hủy</span>
+                                    break;
+                            }
+                        </td>
+                        <td>@item.Note</td>
+                        <td>
+                            @if (item.Status == "Pending")
+                            {
+                                <button type="button" class="btn btn-success btn-sm btn-confirm" data-id="@item.Id">✅ Xác nhận</button>
+                                <button type="button" class="btn btn-danger btn-sm btn-cancel" data-id="@item.Id">❌ Từ chối</button>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Không khả dụng</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const confirmButtons = document.querySelectorAll(".btn-confirm");
+            const cancelButtons = document.querySelectorAll(".btn-cancel");
+
+            confirmButtons.forEach(btn => {
+                btn.addEventListener("click", function () {
+                    const id = this.dataset.id;
+
+                    Swal.fire({
+                        title: "Xác nhận đơn?",
+                        text: "Bạn có chắc muốn xác nhận đơn đặt bàn này?",
+                        icon: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "Xác nhận",
+                        cancelButtonText: "Hủy",
+                        confirmButtonColor: "#198754",
+                        cancelButtonColor: "#6c757d"
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            updateStatus(id, "Confirmed");
+                        }
+                    });
+                });
+            });
+
+            cancelButtons.forEach(btn => {
+                btn.addEventListener("click", function () {
+                    const id = this.dataset.id;
+
+                    Swal.fire({
+                        title: "Từ chối đơn?",
+                        text: "Bạn có chắc muốn từ chối đơn đặt bàn này?",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Từ chối",
+                        cancelButtonText: "Hủy",
+                        confirmButtonColor: "#dc3545",
+                        cancelButtonColor: "#6c757d"
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            updateStatus(id, "Cancelled");
+                        }
+                    });
+                });
+            });
+
+            function updateStatus(id, status) {
+                fetch(`/Reservation/UpdateStatus`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    },
+                    body: `id=${id}&status=${status}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Thành công!",
+                            text: "Trạng thái đơn đã được cập nhật.",
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire("Lỗi!", "Không thể cập nhật trạng thái.", "error");
+                    }
+                });
+            }
+        });
+    </script>
+}

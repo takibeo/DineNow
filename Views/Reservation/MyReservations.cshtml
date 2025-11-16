@@ -1,0 +1,55 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.Reservation>
+
+@{
+    ViewData["Title"] = "Lịch đặt bàn của tôi";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">Bạn chưa có đơn đặt bàn nào.</div>
+    }
+    else
+    {
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Nhà hàng</th>
+                    <th>Thời gian</th>
+                    <th>Số khách</th>
+                    <th>Trạng thái</th>
+                    <th>Ghi chú</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td>@item.Restaurant?.Name</td>
+                        <td>@item.ReservationDate.ToString("HH:mm dd/MM/yyyy")</td>
+                        <td>@item.NumberOfGuests</td>
+                        <td>
+                            @switch (item.Status)
+                            {
+                                case "Pending":
+                                    <span class="badge bg-warning text-dark">Chờ xác nhận</span>
+                                    break;
+                                case "Confirmed":
+                                    <span class="badge bg-success">Đã xác nhận</span>
+                                    break;
+                                case "Cancelled":
+                                    <span class="badge bg-danger">Đã hủy</span>
+                                    break;
+                            }
+                        </td>
+                        <td>@item.Note</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

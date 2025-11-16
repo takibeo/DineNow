@@ -1,0 +1,128 @@
+﻿@model DoAnChuyenNganh.Models.Restaurant
+@{
+    ViewData["Title"] = "Thêm nhà hàng mới";
+}
+
+<div class="container py-5">
+    <div class="card p-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-primary"><i class="bi bi-shop me-2"></i>Thêm nhà hàng mới</h3>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-rounded">
+                <i class="bi bi-arrow-left-circle"></i> Quay lại
+            </a>
+        </div>
+
+        <form asp-action="Create" enctype="multipart/form-data" method="post">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label asp-for="Name" class="form-label fw-semibold">Tên nhà hàng</label>
+                    <input asp-for="Name" class="form-control" placeholder="VD: DineNow Bistro" />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="City" class="form-label fw-semibold">Thành phố</label>
+                    <input asp-for="City" class="form-control" placeholder="VD: Hà Nội" />
+                </div>
+
+                <div class="col-md-12">
+                    <label asp-for="Address" class="form-label fw-semibold">Địa chỉ</label>
+                    <input asp-for="Address" class="form-control" placeholder="123 Đường ABC..." />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Phone" class="form-label fw-semibold">Số điện thoại</label>
+                    <input asp-for="Phone" class="form-control" placeholder="0123 456 789" />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="OpenHours" class="form-label fw-semibold">Giờ mở cửa</label>
+                    <input asp-for="OpenHours" class="form-control" placeholder="8:00 - 22:00" />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="CuisineType" class="form-label fw-semibold">Loại món</label>
+                    <input asp-for="CuisineType" class="form-control" placeholder="Ẩm thực Ý, Nhật, Việt..." />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="AveragePrice" class="form-label fw-semibold">Giá trung bình</label>
+                    <input asp-for="AveragePrice" type="number" class="form-control" placeholder="500000" />
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Description" class="form-label fw-semibold">Mô tả</label>
+                    <textarea asp-for="Description" class="form-control" rows="4" placeholder="Mô tả ngắn về nhà hàng..."></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Ảnh đại diện</label>
+                    <input type="file" name="ImageFile" class="form-control" accept="image/*" />
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <a id="addMenuBtn" class="btn btn-outline-primary w-100"
+                       href="#" onclick="redirectToMenu(); return false;">
+                        <i class="bi bi-journal-plus"></i> Thêm thực đơn
+                    </a>
+            </div>
+
+            <div class="text-end mt-4">
+                <button type="submit" class="btn btn-success btn-lg btn-rounded px-4">
+                    <i class="bi bi-save"></i> Lưu nhà hàng
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        let menuAdded = false;
+
+        function redirectToMenu() {
+            const restaurantName = document.getElementById("Name").value.trim();
+            if (!restaurantName) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thiếu thông tin!',
+                    text: 'Vui lòng nhập tên nhà hàng trước khi thêm thực đơn.',
+                });
+                return;
+            }
+            Swal.fire({
+                title: 'Bạn muốn thêm thực đơn bây giờ?',
+                text: "Bạn có thể thêm sau nếu muốn.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Có, thêm ngay',
+                cancelButtonText: 'Để sau',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Giả sử ID nhà hàng sẽ được thêm sau khi Create thành công
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Lưu ý',
+                        text: 'Vui lòng lưu nhà hàng trước khi thêm thực đơn.',
+                    });
+                }
+            });
+        }
+
+        // Khi người dùng submit form (bấm Lưu nhà hàng)
+        document.querySelector('form').addEventListener('submit', function (e) {
+            if (!menuAdded) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Nhắc nhẹ 🌟',
+                    text: 'Bạn chưa thêm thực đơn cho nhà hàng. Hãy nhớ thêm sau nhé!',
+                    timer: 4000,
+                    showConfirmButton: false
+                });
+            }
+        });
+    </script>
+}

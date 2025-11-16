@@ -1,0 +1,371 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using DoAnChuyenNganh.Models
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+
+@{
+    User? currentUser = null;
+    bool isAdmin = false;
+    bool isStaff = false;
+
+    if (SignInManager.IsSignedIn(User))
+    {
+        currentUser = await UserManager.GetUserAsync(User);
+        isAdmin = await UserManager.IsInRoleAsync(currentUser, "Admin");
+        isStaff = await UserManager.IsInRoleAsync(currentUser, "Staff");
+    }
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - DineNow</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+    <!-- Fonts & Custom -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <style>
+        /* === BODY & GENERAL === */
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1f2937;
+            background: linear-gradient(180deg, #ffffff, #f5f7fa);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* === NAVBAR === */
+        .navbar {
+            backdrop-filter: blur(12px);
+            background: rgba(255,255,255,0.8);
+            transition: all 0.3s ease;
+        }
+
+            .navbar.scrolled {
+                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+                background: rgba(255,255,255,0.95);
+            }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .nav-link {
+            color: #1f2937 !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+            .nav-link:hover {
+                color: #0d6efd !important;
+                transform: translateY(-1px);
+            }
+
+        /* === USER AVATAR === */
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6c5ce7, #00b894);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .user-toggle:hover .user-avatar {
+            transform: scale(1.1) rotate(8deg);
+        }
+
+        .dropdown-menu {
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 6px;
+            transition: all 0.25s ease;
+        }
+
+            .dropdown-item:hover {
+                background: #eef5ff;
+                transform: translateX(4px);
+                color: #0d6efd;
+            }
+
+        /* === MAIN CONTENT === */
+        main {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.05);
+            margin-top: 0; /* sẽ set bằng JS dựa vào navbar */
+        }
+
+        footer {
+            margin-top: 60px;
+        }
+
+        /* === HERO BANNER === */
+        .hero-banner {
+            position: relative;
+            height: 450px;
+            background-position: center;
+            background-size: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
+            .hero-banner::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.45);
+                z-index: 0;
+            }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+            .hero-content h1 {
+                font-size: 3rem;
+                font-weight: 700;
+                text-shadow: 1px 1px 12px rgba(0,0,0,0.5);
+            }
+
+            .hero-content p {
+                font-size: 1.25rem;
+                margin-top: 15px;
+                text-shadow: 1px 1px 8px rgba(0,0,0,0.4);
+            }
+
+            .hero-content button {
+                margin-top: 20px;
+                font-weight: 600;
+                padding: 10px 25px;
+                border-radius: 30px;
+            }
+
+        /* === SPLASH SCREEN === */
+        #splashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('/images/splash.png') center/cover no-repeat;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.6s ease;
+        }
+
+            #splashScreen.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+        .splash-logo {
+            width: 180px;
+            height: auto;
+            margin-bottom: 20px;
+            animation: logoPop 1s ease;
+        }
+
+        .splash-text {
+            color: #fff;
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 12px rgba(0,0,0,0.6);
+            animation: textFade 1s ease;
+        }
+
+        @@keyframes logoPop {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @@keyframes textFade {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- === SPLASH SCREEN === -->
+    <div id="splashScreen">
+        <img src="/images/logo.png" alt="DineNow Logo" class="splash-logo" />
+        <div class="splash-text">DineNow đặt bàn right now</div>
+    </div>
+
+    <!-- === NAVBAR === -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="~/images/logo.png" alt="DineNow" class="me-2" style="height:80px;">
+                <span class="fw-bold" style="font-size:1.5rem; color:#ff6b6b;">DineNow</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse justify-content-between" id="mainNavbar">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Privacy">Chính sách</a></li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle user-toggle" href="#" data-bs-toggle="dropdown">
+                                <span class="user-avatar">@((currentUser?.FullName ?? User.Identity?.Name ?? "U")[0].ToString().ToUpper())</span>
+                                <span>@(currentUser?.FullName ?? User.Identity?.Name)</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end mt-2">
+                                <li><a class="dropdown-item" asp-controller="Reservation" asp-action="MyReservations">📅 Lịch đặt bàn</a></li>
+                                @if (isStaff)
+                                {
+                                    <li><a class="dropdown-item" asp-controller="Reservation" asp-action="Manage">🧾 Quản lý đặt bàn</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Restaurant" asp-action="Index">🏪 Nhà hàng của bạn</a></li>
+                                }
+                                @if (isAdmin)
+                                {
+                                    <li><a class="dropdown-item" asp-controller="Reservation" asp-action="Manage">🧾 Quản lý đặt bàn</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">⚙️ Quản lý tài khoản</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="ManageRestaurants">🏪 Danh sách nhà hàng</a></li>
+                                }
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="ActivityHistory">📜 Lịch sử hoạt động</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="EditProfile">✏️ Chỉnh sửa thông tin</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form asp-controller="Account" asp-action="Logout" method="post">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Login">Đăng nhập</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Register">Đăng ký</a></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- === MAIN CONTENT === -->
+    <main role="main">
+        @RenderBody()
+    </main>
+
+    @Html.Partial("_Footer")
+
+    <!-- === SCRIPTS === -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const nav = document.querySelector("nav.navbar");
+            const main = document.querySelector("main");
+            const splash = document.getElementById('splashScreen');
+
+            // === 1. Padding-top cho main để navbar fixed không che content ===
+            function adjustMainPadding() {
+                const navHeight = nav.offsetHeight;
+                main.style.paddingTop = (navHeight + 20) + "px";
+            }
+            adjustMainPadding();
+            window.addEventListener("resize", adjustMainPadding);
+
+            // Navbar shadow khi scroll
+            window.addEventListener("scroll", () => {
+                nav.classList.toggle("scrolled", window.scrollY > 20);
+            });
+
+            // Smooth scroll
+            document.querySelectorAll('.btn-scroll').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = btn.getAttribute('data-target');
+                    const target = document.getElementById(targetId);
+                    if (target) {
+                        const navHeight = nav.offsetHeight;
+                        target.scrollIntoView({ behavior:'smooth', block:'start' });
+                        window.scrollBy(0, -navHeight-10);
+                    }
+                });
+            });
+
+            // Splash screen chỉ hiển thị 1 lần
+            if (!sessionStorage.getItem('seenSplash')) {
+                document.body.style.overflow = 'hidden';
+                splash.style.display = 'flex';
+
+                setTimeout(() => {
+                    splash.classList.add('hidden');
+                    setTimeout(() => {
+                        splash.style.display = 'none';
+                        document.body.style.overflow = '';
+                    }, 600);
+                }, 2400);
+
+                sessionStorage.setItem('seenSplash', 'true');
+            } else {
+                splash.style.display = 'none';
+            }
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
