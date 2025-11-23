@@ -262,8 +262,28 @@
                 <ul class="navbar-nav ms-auto">
                     @if (SignInManager.IsSignedIn(User))
                     {
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle user-toggle" href="#" data-bs-toggle="dropdown">
+                        <li class="nav-item dropdown d-flex align-items-center">
+                            <!-- Nút Premium nếu chưa nâng cấp -->
+                            @if (currentUser != null && !currentUser.IsPremium)
+                            {
+                                <a class="btn btn-sm btn-warning me-2 fw-bold"
+                                   asp-controller="Premium"
+                                   asp-action="BuyPremium"
+                                   title="Nâng cấp Premium">
+                                    ⭐ Nâng cấp Premium
+                                </a>
+                            }
+
+                            <!-- Hiển thị trạng thái Premium/Standard -->
+                            @if (currentUser != null)
+                            {
+                                <span class="me-2 badge @(currentUser.IsPremium ? "bg-warning text-dark" : "bg-secondary")">
+                                    @(currentUser.IsPremium ? "Premium" : "Standard")
+                                </span>
+                            }
+
+                            <!-- Avatar và dropdown -->
+                            <a class="nav-link dropdown-toggle user-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown">
                                 <span class="user-avatar">@((currentUser?.FullName ?? User.Identity?.Name ?? "U")[0].ToString().ToUpper())</span>
                                 <span>@(currentUser?.FullName ?? User.Identity?.Name)</span>
                             </a>
@@ -300,6 +320,8 @@
                         <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Register">Đăng ký</a></li>
                     }
                 </ul>
+
+
             </div>
         </div>
     </nav>

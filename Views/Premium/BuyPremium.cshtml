@@ -1,0 +1,40 @@
+﻿@model DoAnChuyenNganh.Models.PremiumPackageModel
+
+@{
+    ViewData["Title"] = "Nâng cấp Premium";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg p-4">
+                <h2 class="fw-bold text-center mb-4">Nâng cấp lên Premium</h2>
+
+                <div class="mb-3">
+                    <h4>@Model.Name</h4>
+                    <p>@Model.Description</p>
+                    <p class="fw-bold">Giá: @Model.Amount.ToString("N0") VNĐ</p>
+                    <p>Thời gian sử dụng: @Model.DurationInDays ngày</p>
+                </div>
+
+                <form asp-action="BuyPremium" method="post">
+                    <input type="hidden" asp-for="Name" />
+                    <input type="hidden" asp-for="Description" />
+                    <input type="hidden" asp-for="Amount" />
+                    <input type="hidden" asp-for="DurationInDays" />
+                    <input type="hidden" asp-for="OrderType" />
+
+                    <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold">
+                        ⭐ Thanh toán & Nâng cấp Premium
+                    </button>
+                </form>
+
+                <hr class="my-4" />
+
+                <p class="text-center text-muted">
+                    Sau khi thanh toán thành công, tài khoản của bạn sẽ được nâng cấp lên Premium.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

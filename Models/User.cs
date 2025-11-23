@@ -15,6 +15,9 @@ namespace DoAnChuyenNganh.Models
 
         public bool IsActive { get; set; } = true;
 
+        public bool IsPremium { get; set; } = false; // mặc định là false
+        public DateTime? PremiumExpireDate { get; set; }
+
         // Relationships
         public ICollection<Reservation>? Reservations { get; set; }
         public ICollection<Review>? Reviews { get; set; }
