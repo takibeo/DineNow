@@ -1,6 +1,7 @@
 ﻿using DoAnChuyenNganh.Data;
 using DoAnChuyenNganh.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,11 +12,13 @@ namespace DoAnChuyenNganh.Controllers
     {
         private readonly AppDBContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly UserManager<User> _userManager;
 
-        public RestaurantController(AppDBContext context, IWebHostEnvironment env)
+        public RestaurantController(AppDBContext context, IWebHostEnvironment env, UserManager<User> userManager)
         {
             _context = context;
             _env = env;
+            _userManager = userManager;
         }
 
         // Quản trị viên xem danh sách nhà hàng
@@ -29,48 +32,64 @@ namespace DoAnChuyenNganh.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Restaurant restaurant, IFormFile? ImageFile)
+        public async Task<IActionResult> Create(Restaurant restaurant, List<IFormFile>? ImageFiles)
         {
             if (ModelState.IsValid)
             {
-                if (ImageFile != null && ImageFile.Length > 0)
+                var folder = Path.Combine(_env.WebRootPath, "images", "restaurants");
+                Directory.CreateDirectory(folder);
+
+                var uploadedUrls = new List<string>();
+
+                if (ImageFiles != null && ImageFiles.Any())
                 {
-                    var folder = Path.Combine(_env.WebRootPath, "images", "restaurants");
-                    Directory.CreateDirectory(folder);
-                    var fileName = Guid.NewGuid() + Path.GetExtension(ImageFile.FileName);
-                    var filePath = Path.Combine(folder, fileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    foreach (var file in ImageFiles)
                     {
-                        await ImageFile.CopyToAsync(stream);
+                        if (file.Length > 0)
+                        {
+                            var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                            var filePath = Path.Combine(folder, fileName);
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                                await file.CopyToAsync(stream);
+                            uploadedUrls.Add("/images/restaurants/" + fileName);
+                        }
                     }
-
-                    restaurant.ImageUrl = "/images/restaurants/" + fileName;
                 }
 
-                // ✅ Nếu người thêm là Staff => cần duyệt
+                // Lưu tất cả URL vào ImageUrl, phân tách bằng ;
+                restaurant.ImageUrl = string.Join(";", uploadedUrls);
+
+                // Staff thêm → cần phê duyệt và tạo StaffRestaurant
                 if (User.IsInRole("Staff"))
                 {
                     restaurant.IsApproved = false;
+                    _context.Restaurants.Add(restaurant);
+                    await _context.SaveChangesAsync();
+
+                    var staffRestaurant = new StaffRestaurant
+                    {
+                        RestaurantId = restaurant.Id,
+                        UserId = _userManager.GetUserId(User)
+                    };
+                    _context.StaffRestaurants.Add(staffRestaurant);
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = "Đã gửi yêu cầu thêm nhà hàng, chờ admin phê duyệt.";
                 }
                 else
                 {
                     restaurant.IsApproved = true;
+                    _context.Restaurants.Add(restaurant);
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = "Thêm nhà hàng thành công!";
                 }
-
-                _context.Restaurants.Add(restaurant);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = User.IsInRole("Staff")
-                    ? "Đã gửi yêu cầu thêm nhà hàng, chờ admin phê duyệt."
-                    : "Thêm nhà hàng thành công!";
 
                 return RedirectToAction("Index", "Home");
             }
 
             return View(restaurant);
         }
-
 
 
         public async Task<IActionResult> Edit(int id)

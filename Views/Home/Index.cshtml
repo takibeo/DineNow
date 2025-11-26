@@ -35,7 +35,6 @@
         </div>
     </div>
 
-    <!-- Controls -->
     <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
     </button>
@@ -52,18 +51,13 @@
 
     <!-- Bộ lọc -->
     <form id="filterForm" method="get" class="filter-container d-flex align-items-center mb-4">
-        <!-- Wrapper thanh cuộn + mũi tên -->
         <div class="filter-wrapper position-relative flex-grow-1 me-2">
-            <!-- Nút cuộn trái -->
             <button type="button" class="scroll-btn left">
                 <i class="bi bi-chevron-left"></i>
             </button>
-
-            <!-- Thanh cuộn -->
             <div class="filter-bar d-flex flex-nowrap gap-2 px-3 align-items-center">
                 <input type="text" name="search" class="form-control filter-item search-box"
                        placeholder="Tên quán..." value="@Context.Request.Query["search"]" />
-
                 <select name="city" class="form-select filter-item select-box">
                     <option value="">Thành phố</option>
                     @foreach (var c in ViewBag.Cities)
@@ -71,10 +65,8 @@
                         <option value="@c" selected="@(Context.Request.Query["city"] == c)">@c</option>
                     }
                 </select>
-
                 <input type="text" name="address" class="form-control filter-item address-box"
                        placeholder="Địa chỉ..." value="@Context.Request.Query["address"]" />
-
                 <select name="cuisine" class="form-select filter-item select-box">
                     <option value="">Loại món</option>
                     @foreach (var c in ViewBag.Cuisines)
@@ -82,7 +74,6 @@
                         <option value="@c" selected="@(Context.Request.Query["cuisine"] == c)">@c</option>
                     }
                 </select>
-
                 <select name="rating" class="form-select filter-item select-box">
                     <option value="">Rating</option>
                     <option value="1">1⭐+</option>
@@ -91,20 +82,15 @@
                     <option value="4">4⭐+</option>
                     <option value="5">5⭐</option>
                 </select>
-
                 <input type="number" name="minPrice" class="form-control filter-item price-box"
                        placeholder="Giá min" value="@Context.Request.Query["minPrice"]" />
                 <input type="number" name="maxPrice" class="form-control filter-item price-box"
                        placeholder="Giá max" value="@Context.Request.Query["maxPrice"]" />
             </div>
-
-            <!-- Nút cuộn phải -->
             <button type="button" class="scroll-btn right">
                 <i class="bi bi-chevron-right"></i>
             </button>
         </div>
-
-        <!-- Nút Lọc ngoài cùng -->
         <button class="btn btn-primary btn-filter" type="submit">
             <i class="bi bi-funnel"></i> Lọc
         </button>
@@ -116,7 +102,30 @@
         {
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="card border-0 shadow-lg rounded-4 h-100 hover-card">
-                    <img src="@r.ImageUrl" class="card-img-top rounded-top-4" alt="@r.Name" style="height:220px; object-fit:cover;" />
+
+                    <!-- Carousel ảnh nhà hàng -->
+                    <div id="carousel-@r.Id" class="carousel slide rounded-top-4" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            @{
+                                var images = r.ImageUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? new string[] { "/images/no-image.png" };
+                                int idx = 0;
+                            }
+                            @foreach (var img in images)
+                            {
+                                <div class="carousel-item @(idx == 0 ? "active" : "")">
+                                    <img src="@img" class="d-block w-100" style="height:220px; object-fit:cover;" alt="@r.Name" />
+                                </div>
+                                idx++;
+                            }
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-@r.Id" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-@r.Id" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </button>
+                    </div>
+
                     <div class="card-body">
                         <h5 class="fw-bold text-dark">@r.Name</h5>
                         @{
@@ -147,6 +156,7 @@
                         <p class="fw-semibold text-success mb-3">
                             <i class="bi bi-cash-coin"></i> @r.AveragePrice.ToString("C")
                         </p>
+
                         <a asp-controller="Home" asp-action="Detail" asp-route-id="@r.Id"
                            class="btn btn-outline-primary w-100 btn-rounded mb-2">
                             <i class="bi bi-eye"></i> Xem chi tiết
@@ -167,10 +177,10 @@
         transition: 0.3s;
     }
 
-    .hover-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-    }
+        .hover-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
 
     .filter-container {
         display: flex;
@@ -193,21 +203,36 @@
         display: flex;
         align-items: center;
         height: 100%;
-        padding: 0 36px; /* tạo khoảng trống cho nút cuộn */
+        padding: 0 36px;
     }
 
-    .filter-bar::-webkit-scrollbar {
-        display: none;
-    }
+        .filter-bar::-webkit-scrollbar {
+            display: none;
+        }
 
     .filter-item {
         flex: 0 0 auto;
     }
 
-    .search-box { width: 220px; max-width: 220px; }
-    .address-box { width: 180px; max-width: 180px; }
-    .select-box { width: 160px; max-width: 160px; }
-    .price-box { width: 120px; max-width: 120px; }
+    .search-box {
+        width: 220px;
+        max-width: 220px;
+    }
+
+    .address-box {
+        width: 180px;
+        max-width: 180px;
+    }
+
+    .select-box {
+        width: 160px;
+        max-width: 160px;
+    }
+
+    .price-box {
+        width: 120px;
+        max-width: 120px;
+    }
 
     .btn-filter {
         width: 120px;
@@ -230,8 +255,13 @@
         cursor: pointer;
     }
 
-    .scroll-btn.left { left: 0; }
-    .scroll-btn.right { right: 0; }
+        .scroll-btn.left {
+            left: 0;
+        }
+
+        .scroll-btn.right {
+            right: 0;
+        }
 </style>
 
 <script>
@@ -243,7 +273,6 @@
         filterBar.scrollBy({ left: 200, behavior: 'smooth' });
     });
 
-    // Cuộn mượt khi click "Khám phá ngay" trong Hero
     document.querySelectorAll('.btn-scroll').forEach(btn => {
         btn.addEventListener('click', e => {
             const targetId = e.currentTarget.getAttribute('data-target');

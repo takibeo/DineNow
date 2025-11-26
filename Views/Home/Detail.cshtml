@@ -1,5 +1,4 @@
 ﻿@model DoAnChuyenNganh.Models.Restaurant
-
 @{
     ViewData["Title"] = "Chi tiết nhà hàng";
 }
@@ -7,10 +6,43 @@
 <div class="container py-5">
     <div class="card shadow-lg border-0 rounded-4 overflow-hidden fade-in">
         <div class="row g-0">
-            <div class="col-md-5">
-                <img src="@Model.ImageUrl" alt="@Model.Name"
-                     class="img-fluid h-100 w-100 object-fit-cover" style="object-fit:cover;" />
+            <!-- 🔹 Carousel ảnh nhà hàng -->
+            <div class="col-md-5 d-flex">
+                @{
+                    var images = Model.ImageUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? new string[] { "/images/no-image.png" };
+                }
+                <div id="restaurantCarousel" class="carousel slide flex-fill" data-bs-ride="carousel">
+                    <div class="carousel-inner h-100">
+                        @for (int i = 0; i < images.Length; i++)
+                        {
+                            <div class="carousel-item @(i == 0 ? "active" : "") h-100">
+                                <img src="@images[i]" class="d-block w-100 h-100 object-fit-cover" alt="@Model.Name" />
+                            </div>
+                        }
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#restaurantCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#restaurantCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
             </div>
+
+            <style>
+                #restaurantCarousel {
+                    height: 500px; /* hoặc max-height: 60vh; */
+                }
+
+                /* Ảnh luôn cover khung, giữ tỉ lệ */
+                .carousel-inner img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+            </style>
+
+
             <div class="col-md-7 p-5">
                 <h2 class="fw-bold text-primary mb-3">
                     <i class="bi bi-shop me-2"></i>@Model.Name
@@ -44,81 +76,81 @@
         </div>
     </div>
 
-<!-- 🔹 Đánh giá -->
-<hr class="my-5" />
-<div class="container">
-    <h4 class="fw-bold text-primary mb-4">
-        <i class="bi bi-star-fill text-warning me-2"></i> Đánh giá & nhận xét
-    </h4>
+    <!-- 🔹 Đánh giá -->
+    <hr class="my-5" />
+    <div class="container">
+        <h4 class="fw-bold text-primary mb-4">
+            <i class="bi bi-star-fill text-warning me-2"></i> Đánh giá & nhận xét
+        </h4>
 
-    @if (Model.Reviews != null && Model.Reviews.Any())
-    {
-        <div class="list-group mb-4">
-            @foreach (var review in Model.Reviews.OrderByDescending(r => r.CreatedAt))
-            {
-                <div class="list-group-item border-0 shadow-sm mb-3 rounded-3 p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong>@(review.User?.FullName ?? "Người dùng")</strong>
-                        <small class="text-muted">@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
-                    </div>
-                    <div class="text-warning my-1">
-                        @for (int i = 1; i <= 5; i++)
-                        {
-                            if (i <= review.Rating)
+        @if (Model.Reviews != null && Model.Reviews.Any())
+        {
+            <div class="list-group mb-4">
+                @foreach (var review in Model.Reviews.OrderByDescending(r => r.CreatedAt))
+                {
+                    <div class="list-group-item border-0 shadow-sm mb-3 rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>@(review.User?.FullName ?? "Người dùng")</strong>
+                            <small class="text-muted">@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                        </div>
+                        <div class="text-warning my-1">
+                            @for (int i = 1; i <= 5; i++)
                             {
-                                <i class="bi bi-star-fill"></i>
+                                if (i <= review.Rating)
+                                {
+                                    <i class="bi bi-star-fill"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-star"></i>
+                                }
                             }
-                            else
+                        </div>
+                        <p class="mb-0 text-secondary">@review.Comment</p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted fst-italic">Chưa có đánh giá nào cho nhà hàng này.</p>
+        }
+
+        @if (User.Identity.IsAuthenticated)
+        {
+            <div class="card shadow-sm rounded-4 p-4">
+                <form asp-action="AddReview" method="post">
+                    <input type="hidden" name="restaurantId" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn số sao:</label>
+                        <div id="star-rating" class="text-warning fs-4">
+                            @for (int i = 1; i <= 5; i++)
                             {
-                                <i class="bi bi-star"></i>
+                                <i class="bi bi-star" data-value="@i" style="cursor:pointer;"></i>
                             }
-                        }
+                        </div>
+                        <input type="hidden" id="rating" name="rating" value="0" />
                     </div>
-                    <p class="mb-0 text-secondary">@review.Comment</p>
-                </div>
-            }
-        </div>
-    }
-    else
-    {
-        <p class="text-muted fst-italic">Chưa có đánh giá nào cho nhà hàng này.</p>
-    }
 
-    @if (User.Identity.IsAuthenticated)
-    {
-        <div class="card shadow-sm rounded-4 p-4">
-            <form asp-action="AddReview" method="post">
-                <input type="hidden" name="restaurantId" value="@Model.Id" />
-
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Chọn số sao:</label>
-                    <div id="star-rating" class="text-warning fs-4">
-                        @for (int i = 1; i <= 5; i++)
-                        {
-                            <i class="bi bi-star" data-value="@i" style="cursor:pointer;"></i>
-                        }
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nhận xét:</label>
+                        <textarea class="form-control" name="comment" rows="3" placeholder="Viết cảm nhận của bạn..." required></textarea>
                     </div>
-                    <input type="hidden" id="rating" name="rating" value="0" />
-                </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Nhận xét:</label>
-                    <textarea class="form-control" name="comment" rows="3" placeholder="Viết cảm nhận của bạn..." required></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-primary rounded-pill px-4">
-                    <i class="bi bi-send-fill me-1"></i> Gửi đánh giá
-                </button>
-            </form>
-        </div>
-    }
-    else
-    {
-        <p class="text-muted mt-3">
-            <a asp-controller="Account" asp-action="Login" class="text-primary">Đăng nhập</a> để viết đánh giá của bạn.
-        </p>
-    }
-</div>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-send-fill me-1"></i> Gửi đánh giá
+                    </button>
+                </form>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mt-3">
+                <a asp-controller="Account" asp-action="Login" class="text-primary">Đăng nhập</a> để viết đánh giá của bạn.
+            </p>
+        }
+    </div>
 
 <!-- 🔹 Modal thực đơn -->
 <div class="modal fade" id="menuModal" tabindex="-1" aria-labelledby="menuModalLabel" aria-hidden="true">
@@ -207,45 +239,39 @@ else
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const stars = document.querySelectorAll("#star-rating i");
-            const ratingInput = document.getElementById("rating");
+    <style>
+        /* 🔹 Carousel luôn chiếm 100% chiều cao cột */
+        .carousel-inner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+    @section Scripts {
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                // ⭐ Star rating
+                const stars = document.querySelectorAll("#star-rating i");
+                const ratingInput = document.getElementById("rating");
 
-            if (stars && ratingInput) {
-                stars.forEach(star => {
-                    star.addEventListener("click", () => {
-                        const value = parseInt(star.getAttribute("data-value"));
-                        ratingInput.value = value;
+                if (stars && ratingInput) {
+                    stars.forEach(star => {
+                        star.addEventListener("click", () => {
+                            const value = parseInt(star.getAttribute("data-value"));
+                            ratingInput.value = value;
 
-                        stars.forEach((s, i) => {
-                            if (i < value) {
-                                s.classList.add("bi-star-fill");
-                                s.classList.remove("bi-star");
-                            } else {
-                                s.classList.add("bi-star");
-                                s.classList.remove("bi-star-fill");
-                            }
+                            stars.forEach((s, i) => {
+                                if (i < value) {
+                                    s.classList.add("bi-star-fill");
+                                    s.classList.remove("bi-star");
+                                } else {
+                                    s.classList.add("bi-star");
+                                    s.classList.remove("bi-star-fill");
+                                }
+                            });
                         });
                     });
-                });
-            }
+                }
 
-            // 🔸 Bộ lọc danh mục trong modal
-            const filterButtons = document.querySelectorAll("#menuFilter .nav-link");
-            filterButtons.forEach(button => {
-                button.addEventListener("click", () => {
-                    filterButtons.forEach(b => b.classList.remove("active"));
-                    button.classList.add("active");
-
-                    const targetId = button.getAttribute("data-target");
-                    const section = document.querySelector(targetId);
-                    if (section) {
-                        section.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
-                });
-            });
-        });
-    </script>
-}
+        </script>
+    }

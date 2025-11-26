@@ -52,6 +52,7 @@ namespace DoAnChuyenNganh.Controllers
                     FullName = model.FullName,
                     Address = model.Address,
                     DateOfBirth = model.DateOfBirth,
+                    PhoneNumber = model.PhoneNumber,
                     IsActive = true
                 };
 
