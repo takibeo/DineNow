@@ -64,14 +64,23 @@
                 </div>
 
                 <div class="col-md-12">
-                    <label class="form-label fw-semibold">Ảnh hiện tại</label><br />
+                    <label class="form-label fw-semibold">Ảnh nhà hàng</label><br />
+
                     @if (!string.IsNullOrEmpty(Model.ImageUrl))
                     {
-                        <img src="@Model.ImageUrl" class="img-fluid rounded shadow-sm mb-3" style="max-width:200px;" />
+                        var images = Model.ImageUrl.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                        <div class="mb-3">
+                            @foreach (var img in images)
+                            {
+                                <img src="@img" class="img-fluid rounded shadow-sm me-2 mb-2" style="max-width:150px;" />
+                            }
+                        </div>
                     }
-                    <input type="file" name="ImageFile" class="form-control" accept="image/*" />
+
+                    <input type="file" name="ImageFiles" class="form-control" accept="image/*" multiple />
+                    <small class="text-muted">Bạn có thể chọn nhiều ảnh cùng lúc. Ảnh mới sẽ thay thế ảnh cũ.</small>
                 </div>
-            </div>
+
 
             <div class="text-end mt-4">
                 <button type="submit" class="btn btn-warning btn-lg btn-rounded px-4">

@@ -101,7 +101,7 @@ namespace DoAnChuyenNganh.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Restaurant restaurant, IFormFile? ImageFile)
+        public async Task<IActionResult> Edit(int id, Restaurant restaurant, IFormFile[] ImageFiles)
         {
             if (id != restaurant.Id) return NotFound();
 
@@ -110,22 +110,28 @@ namespace DoAnChuyenNganh.Controllers
 
             if (ModelState.IsValid)
             {
-                if (ImageFile != null && ImageFile.Length > 0)
+                if (ImageFiles != null && ImageFiles.Length > 0)
                 {
                     var folder = Path.Combine(_env.WebRootPath, "images", "restaurants");
                     Directory.CreateDirectory(folder);
-                    var fileName = Guid.NewGuid() + Path.GetExtension(ImageFile.FileName);
-                    var filePath = Path.Combine(folder, fileName);
+                    var imageUrls = new List<string>();
 
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    foreach (var file in ImageFiles)
                     {
-                        await ImageFile.CopyToAsync(stream);
+                        var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                        var filePath = Path.Combine(folder, fileName);
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+                        imageUrls.Add("/images/restaurants/" + fileName);
                     }
 
-                    existing.ImageUrl = "/images/restaurants/" + fileName;
+                    // Ghi đè tất cả ảnh cũ
+                    existing.ImageUrl = string.Join(";", imageUrls);
                 }
 
-                // Cập nhật tất cả các trường từ form
+                // Cập nhật các trường khác
                 existing.Name = restaurant.Name;
                 existing.Description = restaurant.Description;
                 existing.City = restaurant.City;
@@ -133,16 +139,8 @@ namespace DoAnChuyenNganh.Controllers
                 existing.Address = restaurant.Address;
                 existing.AveragePrice = restaurant.AveragePrice;
 
-                // Nếu Staff chỉnh sửa => cần duyệt lại
-                if (User.IsInRole("Staff"))
-                {
-                    existing.IsApproved = false;
-                    TempData["Success"] = "Đã gửi yêu cầu chỉnh sửa, chờ admin phê duyệt.";
-                }
-                else
-                {
-                    existing.IsApproved = true;
-                }
+                // Duyệt nếu Staff
+                existing.IsApproved = User.IsInRole("Staff") ? false : true;
 
                 _context.Update(existing);
                 await _context.SaveChangesAsync();
@@ -151,9 +149,6 @@ namespace DoAnChuyenNganh.Controllers
 
             return View(restaurant);
         }
-
-
-
         public async Task<IActionResult> Delete(int id)
         {
             var restaurant = await _context.Restaurants.FindAsync(id);
