@@ -206,21 +206,6 @@
             }
         });
     }
-
-    // 🎉 Hiển thị thông báo từ TempData
-    @if (TempData["Success"] != null)
-    {
-        <text>
-            Swal.fire({
-                icon: "success",
-                title: "Thành công!",
-                text: "@TempData["Success"]",
-                showConfirmButton: false,
-                timer: 2000
-            });
-        </text>
-    }
-
     @if (TempData["Error"] != null)
     {
         <text>
