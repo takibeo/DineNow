@@ -128,7 +128,21 @@ namespace DoAnChuyenNganh.Controllers
             _context.UserLogs.Add(log);
             await _context.SaveChangesAsync();
         }
+        // 🛎 Gửi thông báo cho 1 người dùng
+        private async Task SaveNotification(string userId, string message, string type = "System")
+        {
+            var noti = new Notification
+            {
+                UserId = userId,
+                Message = message,
+                Type = type,
+                IsRead = false,
+                CreatedAt = DateTime.Now
+            };
 
+            _context.Notifications.Add(noti);
+            await _context.SaveChangesAsync();
+        }
         [Authorize]
         public async Task<IActionResult> ActivityHistory()
         {
@@ -273,12 +287,54 @@ namespace DoAnChuyenNganh.Controllers
                     );
                 }
             }
-
             // 🛑 Không tiết lộ email tồn tại hay chưa
             ViewBag.Message = "Mật khẩu mới đã được gửi! Vui lòng kiểm tra hộp thư.";
             return View(model);
         }
 
+        [Authorize]
+        public async Task<IActionResult> Notifications()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            var list = await _context.Notifications
+                .Where(n => n.UserId == userId)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToListAsync();
+
+            return View(list);
+        }
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> MarkAllNotificationsRead()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var noti = _context.Notifications.Where(n => n.UserId == userId && !n.IsRead);
+
+            foreach (var n in noti)
+                n.IsRead = true;
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteAllNotifications()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var notiList = await _context.Notifications
+                .Where(n => n.UserId == userId)
+                .ToListAsync();
+
+            if (notiList.Any())
+            {
+                _context.Notifications.RemoveRange(notiList);
+                await _context.SaveChangesAsync();
+            }
+
+            return Json(new { success = true });
+        }
     }
 }

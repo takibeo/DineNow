@@ -2,17 +2,33 @@
 @using DoAnChuyenNganh.Models
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
+@inject DoAnChuyenNganh.Data.AppDBContext _context
 
 @{
     User? currentUser = null;
     bool isAdmin = false;
     bool isStaff = false;
 
+    int unreadCount = 0;
+    List<Notification> recentNotifications = new();
+
     if (SignInManager.IsSignedIn(User))
     {
         currentUser = await UserManager.GetUserAsync(User);
         isAdmin = await UserManager.IsInRoleAsync(currentUser, "Admin");
         isStaff = await UserManager.IsInRoleAsync(currentUser, "Staff");
+
+        // Lấy số lượng thông báo chưa đọc
+        unreadCount = _context.Notifications
+            .Where(n => n.UserId == currentUser.Id && !n.IsRead)
+            .Count();
+
+        // Lấy 5 thông báo gần nhất
+        recentNotifications = _context.Notifications
+            .Where(n => n.UserId == currentUser.Id)
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(5)
+            .ToList();
     }
 }
 
@@ -32,6 +48,123 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <style>
+        .btn-upgrade-royal-gold {
+            background: linear-gradient(135deg, #ad8a2d, #d4b25e); /* vàng hoàng gia */
+            color: #fff !important;
+            font-weight: 700;
+            padding: 7px 18px;
+            border-radius: 30px;
+            font-size: 0.92rem;
+            text-decoration: none;
+            transition: 0.25s ease;
+            /* hiệu ứng sang trọng */
+            box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+            .btn-upgrade-royal-gold:hover {
+                transform: translateY(-2px);
+                background: linear-gradient(135deg, #b9963d, #e0c680); /* sáng hơn chút nhưng không chói */
+                box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+                color: #fff !important;
+            }
+        /* Icon chuông */
+        .notification-bell {
+            position: relative !important;
+            font-size: 1.45rem !important;
+            cursor: pointer !important;
+            transition: transform 0.2s ease !important;
+        }
+
+            .notification-bell:hover {
+                transform: scale(1.15) !important;
+            }
+
+        /* Badge đỏ */
+        .notification-badge {
+            position: absolute !important;
+            top: -4px !important;
+            right: -6px !important;
+            background: #ff4757 !important;
+            color: #fff !important;
+            font-size: 0.7rem !important;
+            padding: 2px 6px !important;
+            border-radius: 50px !important;
+            font-weight: 600 !important;
+            box-shadow: 0 0 4px rgba(255,0,0,0.6) !important;
+        }
+
+        /* Dropdown */
+        .notification-dropdown {
+            width: 360px !important;
+            max-height: 400px !important;
+            overflow-y: auto !important;
+            border-radius: 14px !important;
+            padding: 0 !important;
+            animation: dropdownFade 0.25s ease !important;
+        }
+        @@keyframes dropdownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header */
+        .notification-header {
+            padding: 12px 16px !important;
+            font-weight: 700 !important;
+            background: #f8f9fc !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+        }
+
+        /* Item */
+        .notification-item {
+            padding: 12px 16px !important;
+            border-bottom: 1px solid #f1f3f5 !important;
+            display: block !important;
+            white-space: normal !important;
+        }
+
+        /* Text (FULL, không giới hạn dòng) */
+        .notification-text {
+            white-space: normal !important;
+            overflow-wrap: break-word !important;
+            font-size: 0.95rem !important;
+            line-height: 1.35 !important;
+        }
+
+        /* Time */
+        .notification-time {
+            font-size: 0.75rem !important;
+            color: #6c757d !important;
+            margin-top: 4px !important;
+        }
+
+        /* Hover item */
+        .notification-item:hover {
+            background: #eef5ff !important;
+        }
+
+        /* Footer */
+        .view-all {
+            text-align: center !important;
+            padding: 10px !important;
+            font-weight: 600 !important;
+            background: #f8f9fa !important;
+        }
+
+            .view-all:hover {
+                background: #e7f0ff !important;
+            }
         /* === BODY & GENERAL === */
         body {
             font-family: 'Inter', sans-serif;
@@ -68,7 +201,6 @@
                 color: #0d6efd !important;
                 transform: translateY(-1px);
             }
-
         /* === USER AVATAR === */
         .user-avatar {
             width: 36px;
@@ -107,20 +239,18 @@
                 transform: translateX(4px);
                 color: #0d6efd;
             }
-
         /* === MAIN CONTENT === */
         main {
             background: #fff;
             border-radius: 16px;
             padding: 32px;
             box-shadow: 0 4px 25px rgba(0,0,0,0.05);
-            margin-top: 0; /* sẽ set bằng JS dựa vào navbar */
+            margin-top: 0;
         }
 
         footer {
             margin-top: 60px;
         }
-
         /* === HERO BANNER === */
         .hero-banner {
             position: relative;
@@ -168,7 +298,6 @@
                 padding: 10px 25px;
                 border-radius: 30px;
             }
-
         /* === SPLASH SCREEN === */
         #splashScreen {
             position: fixed;
@@ -259,36 +388,84 @@
                     <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
                     <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Privacy">Chính sách</a></li>
                 </ul>
+
                 <ul class="navbar-nav ms-auto">
                     @if (SignInManager.IsSignedIn(User))
                     {
-                        <li class="nav-item dropdown d-flex align-items-center">
-                            <!-- Nút Premium nếu chưa nâng cấp -->
-                            @if (currentUser != null && !currentUser.IsPremium)
-                            {
-                                <a class="btn btn-sm btn-warning me-2 fw-bold"
-                                   asp-controller="Premium"
-                                   asp-action="BuyPremium"
-                                   title="Nâng cấp Premium">
-                                    ⭐ Nâng cấp Premium
-                                </a>
-                            }
+                        <!-- 🔔 ICON CHUÔNG -->
+                        <li class="nav-item dropdown me-3">
+                            <a class="nav-link" href="#" data-bs-toggle="dropdown">
+                                <i class="bi bi-bell notification-bell"></i>
 
-                            <!-- Hiển thị trạng thái Premium/Standard -->
-                            @if (currentUser != null)
-                            {
-                                <span class="me-2 badge @(currentUser.IsPremium ? "bg-warning text-dark" : "bg-secondary")">
+                                @if (unreadCount > 0)
+                                {
+                                    <span class="notification-badge">@unreadCount</span>
+                                }
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end mt-2 notification-dropdown">
+                                <li class="notification-header">
+                                    <i class="bi bi-bell-fill text-primary"></i> Thông báo
+                                </li>
+
+                                @if (recentNotifications.Count == 0)
+                                {
+                                    <li class="px-3 py-3 text-muted small">Không có thông báo</li>
+                                }
+                                else
+                                {
+                                    foreach (var n in recentNotifications)
+                                    {
+                                        <li class="notification-item">
+                                            <span class="fw-semibold @(n.IsRead ? "" : "text-primary") notification-text">
+                                                @n.Message
+                                            </span>
+                                            <div class="notification-time">
+                                                @n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                            </div>
+                                        </li>
+                                    }
+                                }
+
+                                <li>
+                                    <a class="dropdown-item view-all"
+                                       asp-controller="Account"
+                                       asp-action="Notifications">
+                                        Xem tất cả →
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
+                        <!-- ⭐ NÚT PREMIUM - ĐẶT NGANG HÀNG VỚI CHUÔNG -->
+                        @if (currentUser != null && !currentUser.IsPremium)
+                        {
+                            <li class="nav-item d-flex align-items-center me-3">
+                                <a class="btn-upgrade-royal-gold"
+                                   asp-controller="Premium" asp-action="BuyPremium">
+                                    <i class="bi bi-stars me-1"></i> Nâng cấp Premium
+                                </a>
+                            </li>
+                        }
+                        <!-- Hiển thị trạng thái Premium/Standard -->
+                        @if (currentUser != null)
+                        {
+                            <li class="nav-item d-flex align-items-center me-3">
+                                <span class="badge @(currentUser.IsPremium ? "bg-warning text-dark" : "bg-secondary")">
                                     @(currentUser.IsPremium ? "Premium" : "Standard")
                                 </span>
-                            }
-
-                            <!-- Avatar và dropdown -->
+                            </li>
+                        }
+                        <!-- Avatar -->
+                        <li class="nav-item dropdown d-flex align-items-center">
                             <a class="nav-link dropdown-toggle user-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown">
-                                <span class="user-avatar">@((currentUser?.FullName ?? User.Identity?.Name ?? "U")[0].ToString().ToUpper())</span>
+                                <span class="user-avatar">@((currentUser?.FullName ?? User.Identity?.Name ?? "U")[0])</span>
                                 <span>@(currentUser?.FullName ?? User.Identity?.Name)</span>
                             </a>
+
                             <ul class="dropdown-menu dropdown-menu-end mt-2">
                                 <li><a class="dropdown-item" asp-controller="Reservation" asp-action="MyReservations">📅 Lịch đặt bàn</a></li>
+
                                 @if (isStaff)
                                 {
                                     <li><a class="dropdown-item" asp-controller="Reservation" asp-action="Manage">🧾 Quản lý đặt bàn</a></li>
@@ -296,14 +473,15 @@
                                 }
                                 @if (isAdmin)
                                 {
-                                    <li><a class="dropdown-item" asp-controller="Reservation" asp-action="Manage">🧾 Quản lý đặt bàn</a></li>
                                     <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">⚙️ Quản lý tài khoản</a></li>
                                     <li><a class="dropdown-item" asp-controller="Admin" asp-action="ManageRestaurants">🏪 Danh sách nhà hàng</a></li>
                                 }
+
                                 <li><hr class="dropdown-divider" /></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="ActivityHistory">📜 Lịch sử hoạt động</a></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="EditProfile">✏️ Chỉnh sửa thông tin</a></li>
                                 <li><hr class="dropdown-divider" /></li>
+
                                 <li>
                                     <form asp-controller="Account" asp-action="Logout" method="post">
                                         <button type="submit" class="dropdown-item text-danger">
@@ -320,12 +498,9 @@
                         <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Register">Đăng ký</a></li>
                     }
                 </ul>
-
-
             </div>
         </div>
     </nav>
-
     <!-- === MAIN CONTENT === -->
     <main role="main">
         @RenderBody()

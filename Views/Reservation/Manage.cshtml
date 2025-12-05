@@ -24,20 +24,25 @@
                     <th>Nhà hàng</th>
                     <th>Thời gian</th>
                     <th>Số khách</th>
+                    <th>Số điện thoại</th>
                     <th>Trạng thái</th>
                     <th>Ghi chú</th>
                     <th>Hành động</th>
                 </tr>
             </thead>
+            @{
+                int stt = 0;
+            }
             <tbody>
                 @foreach (var item in Model)
                 {
                     <tr>
-                        <td>@item.Id</td>
+                        <td>@(++stt)</td>
                         <td>@item.User?.FullName</td>
                         <td>@item.Restaurant?.Name</td>
                         <td>@item.ReservationDate.ToString("HH:mm dd/MM/yyyy")</td>
                         <td>@item.NumberOfGuests</td>
+                        <td>@item.ContactPhone</td>
                         <td>
                             @switch (item.Status)
                             {
@@ -49,6 +54,9 @@
                                     break;
                                 case "Cancelled":
                                     <span class="badge bg-danger">Đã hủy</span>
+                                    break;
+                                case "GuestCancelled":
+                                    <span class="badge bg-secondary">Khách hủy</span>
                                     break;
                             }
                         </td>

@@ -34,6 +34,21 @@ namespace DoAnChuyenNganh.Controllers
             await _context.SaveChangesAsync();
         }
 
+        private async Task SaveNotification(string userId, string message)
+        {
+            var noti = new Notification
+            {
+                UserId = userId,
+                Message = message,
+                Type = "System",
+                CreatedAt = DateTime.Now,
+                IsRead = false
+            };
+
+            _context.Notifications.Add(noti);
+            await _context.SaveChangesAsync();
+        }
+
         // --- Tạo đặt bàn ---
         [HttpGet]
         [Authorize]
@@ -73,40 +88,41 @@ namespace DoAnChuyenNganh.Controllers
             _context.Reservations.Add(reservation);
             await _context.SaveChangesAsync();
 
-            if (User.IsInRole("Staff"))
-            {
-                bool exists = await _context.StaffRestaurants
-                    .AnyAsync(sr => sr.UserId == userId && sr.RestaurantId == reservation.RestaurantId);
+            var restaurant = await _context.Restaurants.FindAsync(reservation.RestaurantId);
+            string restaurantName = restaurant?.Name ?? "Nhà hàng";
 
-                if (!exists)
-                {
-                    _context.StaffRestaurants.Add(new StaffRestaurant
-                    {
-                        UserId = userId,
-                        RestaurantId = reservation.RestaurantId
-                    });
-                    await _context.SaveChangesAsync();
-                }
-            }
+            string timeText = reservation.ReservationDate.ToString("HH:mm dd/MM/yyyy");
 
-            var restaurant = await _context.Restaurants
-                .FirstOrDefaultAsync(r => r.Id == reservation.RestaurantId);
-
-            string restaurantName = restaurant != null ? restaurant.Name : $"ID {reservation.RestaurantId}";
-
-            await SaveUserLog(
+            // ================================
+            // 🔔 1) THÔNG BÁO CHO CUSTOMER
+            // ================================
+            await SaveNotification(
                 userId,
-                "CreateReservation",
-                $"Đặt bàn tại nhà hàng {restaurantName} lúc {reservation.ReservationDate:HH:mm dd/MM/yyyy} cho {reservation.NumberOfGuests} khách."
+                $"Bạn đã đặt bàn tại {restaurantName} lúc {timeText}. "
             );
+
+            // ================================
+            // 🔔 2) THÔNG BÁO CHO STAFF LIÊN QUAN
+            // ================================
+            var staffList = await _context.StaffRestaurants
+                .Where(sr => sr.RestaurantId == reservation.RestaurantId)
+                .Select(sr => sr.UserId)
+                .ToListAsync();
+
+            foreach (var staffId in staffList)
+            {
+                await SaveNotification(
+                    staffId,
+                    $"Khách hàng đã tạo đơn đặt bàn tại {restaurantName} lúc {timeText}."
+                );
+            }
 
             return Json(new
             {
                 success = true,
-                message = $"Bạn đã đặt bàn thành công tại {restaurant?.Name}! Vui lòng chờ xác nhận từ nhân viên. Bạn sẽ nhận được Email thông báo về lịch đặt bạn của bạn."
+                message = $"Bạn đã đặt bàn thành công tại {restaurantName}! Vui lòng chờ xác nhận từ nhân viên. Bạn sẽ nhận được Email về đơn đặt bàn của bạn sau khi đã xác nhận."
             });
         }
-
 
         // --- Danh sách đặt bàn cá nhân ---
         [Authorize]
@@ -166,29 +182,38 @@ namespace DoAnChuyenNganh.Controllers
             await _context.SaveChangesAsync();
 
             string restaurantName = reservation.Restaurant?.Name ?? $"ID {reservation.RestaurantId}";
-
             string statusText = status switch
             {
-                "Confirmed" => "Được chấp nhận ✔️",
-                "Cancelled" => "Bị từ chối ❌",
-                _ => $"Được cập nhật thành {status}"
+                "Confirmed" => "được chấp nhận ✔️",
+                "Cancelled" => "bị từ chối ❌",
+                _ => $"được cập nhật thành {status}"
             };
 
-            // 🎯 Ghi log
-            await SaveUserLog(
-                reservation.UserId,
-                "UpdateReservationStatus",
-                $"Đơn đặt bàn tại {restaurantName} đã {statusText}."
-            );
+            // ================================
+            // 📢 TẠO THÔNG BÁO CHO CUSTOMER
+            // ================================
+            string message =
+                $"Đơn đặt bàn tại {restaurantName} lúc {reservation.ReservationDate:HH:mm dd/MM/yyyy} {statusText}.";
 
-            // --- 📧 Gửi email nếu người dùng có email ---
+            var notification = new Notification
+            {
+                UserId = reservation.UserId,
+                Message = message,
+                CreatedAt = DateTime.Now,
+                IsRead = false
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+
+            // ================================
+            // 📧 GIỮ NGUYÊN PHẦN GỬI EMAIL
+            // ================================
             if (reservation.User?.Email != null)
             {
-                // 📂 Đọc file HTML template
                 string templatePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/email-templates/reservation.cshtml");
                 string template = System.IO.File.ReadAllText(templatePath);
 
-                // 🎨 Tuỳ chỉnh template
                 string emailBody = template
                     .Replace("{TITLE}", status == "Confirmed" ? "Đặt bàn đã được xác nhận!" : "Đặt bàn đã bị từ chối")
                     .Replace("{FULL_NAME}", reservation.User.FullName)
@@ -206,12 +231,10 @@ namespace DoAnChuyenNganh.Controllers
                             ? "Chúng tôi rất hân hạnh được phục vụ bạn."
                             : "Vui lòng đặt lại thời gian khác hoặc liên hệ nhà hàng để biết thêm thông tin.");
 
-                // 📬 Tiêu đề email
                 string subject = status == "Confirmed"
                     ? "Đặt bàn của bạn đã được xác nhận!"
                     : "Đặt bàn của bạn đã bị từ chối";
 
-                // 🚀 Gửi email
                 await _emailSender.SendEmailAsync(reservation.User.Email, subject, emailBody);
             }
 
@@ -219,5 +242,48 @@ namespace DoAnChuyenNganh.Controllers
             return RedirectToAction("Manage");
         }
 
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> GuestCancel(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var reservation = await _context.Reservations
+                .Include(r => r.Restaurant)
+                .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+
+            if (reservation == null)
+                return NotFound();
+
+            if (reservation.Status != "Pending" && reservation.Status != "Confirmed")
+                return BadRequest("Không thể hủy đơn ở trạng thái hiện tại.");
+
+            reservation.Status = "GuestCancelled";
+            await _context.SaveChangesAsync();
+
+            string restaurantName = reservation.Restaurant?.Name ?? "Nhà hàng";
+
+            // 🔔 Thông báo cho Customer
+            await SaveNotification(
+                userId,
+                $"Bạn đã hủy đơn đặt bàn tại {restaurantName}."
+            );
+
+            // 🔔 Gửi Notification cho tất cả Staff quản lý nhà hàng
+            var staffList = await _context.StaffRestaurants
+                .Where(sr => sr.RestaurantId == reservation.RestaurantId)
+                .Select(sr => sr.UserId)
+                .ToListAsync();
+
+            foreach (var staffId in staffList)
+            {
+                await SaveNotification(
+                    staffId,
+                    $"Khách đã hủy đơn đặt bàn tại {restaurantName}."
+                );
+            }
+
+            return Json(new { success = true });
+        }
     }
 }
