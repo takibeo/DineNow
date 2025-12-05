@@ -87,6 +87,18 @@ namespace DoAnChuyenNganh.Controllers
             ViewBag.Cities = await _context.Restaurants.Select(r => r.City).Distinct().ToListAsync();
             ViewBag.Cuisines = await _context.Restaurants.Select(r => r.CuisineType).Distinct().ToListAsync();
 
+            var user = await _userManager.GetUserAsync(User);
+            var favoriteIds = new List<int>();
+
+            if (user != null)
+            {
+                favoriteIds = await _context.FavoriteRestaurants
+                    .Where(f => f.UserId == user.Id)
+                    .Select(f => f.RestaurantId)
+                    .ToListAsync();
+            }
+
+            ViewBag.FavoriteIds = favoriteIds;
             return View(restaurants.Select(x => x.Restaurant).ToList());
         }
 
@@ -129,5 +141,63 @@ namespace DoAnChuyenNganh.Controllers
 
             return RedirectToAction("Detail", new { id = restaurantId });
         }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> ToggleFavorite(int restaurantId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user == null)
+                return Unauthorized();
+
+            var existing = await _context.FavoriteRestaurants
+                .FirstOrDefaultAsync(f => f.UserId == user.Id && f.RestaurantId == restaurantId);
+
+            if (existing == null)
+            {
+                // ➕ Thêm yêu thích
+                _context.FavoriteRestaurants.Add(new FavoriteRestaurant
+                {
+                    UserId = user.Id,
+                    RestaurantId = restaurantId
+                });
+
+                await _context.SaveChangesAsync();
+                return Json(new { isFavorite = true });
+            }
+            else
+            {
+                // ❌ Xóa yêu thích
+                _context.FavoriteRestaurants.Remove(existing);
+                await _context.SaveChangesAsync();
+                return Json(new { isFavorite = false });
+            }
+        }
+
+        [Authorize]
+        public async Task<IActionResult> Favorite()
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user == null)
+                return Unauthorized();
+
+            var favorites = await _context.FavoriteRestaurants
+                .Where(f => f.UserId == user.Id)
+                .Include(f => f.Restaurant)
+                    .ThenInclude(r => r.Reviews)
+                .Select(f => f.Restaurant)
+                .ToListAsync();
+
+            // Tính rating
+            ViewBag.RestaurantRatings = favorites.ToDictionary(
+                x => x.Id,
+                x => x.Reviews.Any() ? x.Reviews.Average(r => r.Rating) : 0
+            );
+
+            return View(favorites);
+        }
+
     }
 }

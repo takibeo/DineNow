@@ -19,7 +19,7 @@
             <div class="hero-banner" style="background-image: url('/images/hero2.jpg');">
                 <div class="hero-content">
                     <h1>Thưởng thức ẩm thực tuyệt vời</h1>
-                    <p>Hàng trăm nhà hàng, nhiều lựa chọn, phục vụ tận nơi</p>
+                    <p>Hàng trăm nhà hàng, nhiều lựa chọn</p>
                     <button class="btn btn-primary btn-lg btn-scroll" data-target="restaurantsSection">Khám phá ngay</button>
                 </div>
             </div>
@@ -27,8 +27,8 @@
         <div class="carousel-item">
             <div class="hero-banner" style="background-image: url('/images/hero3.jpg');">
                 <div class="hero-content">
-                    <h1>Đặt bàn dễ dàng, nhanh chóng</h1>
-                    <p>Tiết kiệm thời gian, trải nghiệm tiện lợi mọi lúc</p>
+                    <h1>Đặt bàn dễ dàng</h1>
+                    <p>Trải nghiệm tiện lợi mọi lúc</p>
                     <button class="btn btn-primary btn-lg btn-scroll" data-target="restaurantsSection">Khám phá ngay</button>
                 </div>
             </div>
@@ -36,10 +36,10 @@
     </div>
 
     <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="carousel-control-prev-icon"></span>
     </button>
     <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="carousel-control-next-icon"></span>
     </button>
 </div>
 
@@ -103,7 +103,18 @@
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="card border-0 shadow-lg rounded-4 h-100 hover-card">
 
-                    <!-- Carousel ảnh nhà hàng -->
+                    <!-- FAVORITE BUTTON -->
+                    @{
+                        bool isFav = ViewBag.FavoriteIds != null &&
+                        ((List<int>)ViewBag.FavoriteIds).Contains(r.Id);
+                    }
+
+                    <button class="favorite-btn @(isFav ? "active" : "")" data-id="@r.Id">
+                        <i class="bi @(isFav ? "bi-heart-fill" : "bi-heart")"></i>
+                    </button>
+
+
+                    <!-- Carousel ảnh -->
                     <div id="carousel-@r.Id" class="carousel slide rounded-top-4" data-bs-ride="carousel">
                         <div class="carousel-inner">
                             @{
@@ -113,21 +124,23 @@
                             @foreach (var img in images)
                             {
                                 <div class="carousel-item @(idx == 0 ? "active" : "")">
-                                    <img src="@img" class="d-block w-100" style="height:220px; object-fit:cover;" alt="@r.Name" />
+                                    <img src="@img" class="d-block w-100 restaurant-img" alt="@r.Name" />
                                 </div>
                                 idx++;
                             }
                         </div>
                         <button class="carousel-control-prev" type="button" data-bs-target="#carousel-@r.Id" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="carousel-control-prev-icon"></span>
                         </button>
                         <button class="carousel-control-next" type="button" data-bs-target="#carousel-@r.Id" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="carousel-control-next-icon"></span>
                         </button>
                     </div>
 
                     <div class="card-body">
-                        <h5 class="fw-bold text-dark">@r.Name</h5>
+                        <h5 class="fw-bold">@r.Name</h5>
+
+                        <!-- Rating -->
                         @{
                             var avgRating = ViewBag.RestaurantRatings.ContainsKey(r.Id)
                             ? (double)ViewBag.RestaurantRatings[r.Id]
@@ -142,15 +155,18 @@
                                 }
                                 else if (i - avgRating < 1)
                                 {
+
                                     <i class="bi bi-star-half text-warning"></i>
                                 }
                                 else
                                 {
+
                                     <i class="bi bi-star text-warning"></i>
                                 }
                             }
                             <span class="text-muted">(@avgRating.ToString("0.0"))</span>
                         </div>
+
                         <p class="text-muted mb-1"><i class="bi bi-geo-alt text-danger"></i> @r.City</p>
                         <p class="mb-1"><i class="bi bi-egg-fried text-info"></i> @r.CuisineType</p>
                         <p class="fw-semibold text-success mb-3">
@@ -169,25 +185,74 @@
 </div>
 
 <style>
-    .btn-rounded {
-        border-radius: 30px;
+    /* Hero Section */
+    .hero-banner {
+        height: 420px;
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        padding-left: 60px;
+        border-radius: 12px;
     }
 
+    .hero-content h1 {
+        font-size: 42px;
+        font-weight: 800;
+    }
+
+    .hero-content p {
+        font-size: 18px;
+        opacity: 0.9;
+    }
+
+    /* Hover Card */
     .hover-card {
-        transition: 0.3s;
+        transition: .3s;
+        position: relative;
     }
 
         .hover-card:hover {
             transform: translateY(-6px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
         }
 
-    .filter-container {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+    /* Restaurant Image */
+    .restaurant-img {
+        height: 220px;
+        object-fit: cover;
+        border-radius: 12px 12px 0 0;
     }
 
+    /* Favorite Button */
+    .favorite-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 20;
+        background: white;
+        border: none;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: .2s;
+    }
+
+        .favorite-btn i {
+            font-size: 20px;
+            color: #ff4b4b;
+        }
+
+        .favorite-btn:hover {
+            transform: scale(1.15);
+        }
+
+    /* Filter Bar */
     .filter-wrapper {
         position: relative;
         flex-grow: 1;
@@ -210,41 +275,12 @@
             display: none;
         }
 
-    .filter-item {
-        flex: 0 0 auto;
-    }
-
-    .search-box {
-        width: 220px;
-        max-width: 220px;
-    }
-
-    .address-box {
-        width: 180px;
-        max-width: 180px;
-    }
-
-    .select-box {
-        width: 160px;
-        max-width: 160px;
-    }
-
-    .price-box {
-        width: 120px;
-        max-width: 120px;
-    }
-
-    .btn-filter {
-        width: 120px;
-        flex-shrink: 0;
-    }
-
     .scroll-btn {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
         z-index: 10;
-        background: rgba(255,255,255,0.9);
+        background: rgba(255,255,255,.9);
         border: none;
         border-radius: 50%;
         width: 36px;
@@ -253,6 +289,7 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,.15);
     }
 
         .scroll-btn.left {
@@ -262,21 +299,63 @@
         .scroll-btn.right {
             right: 0;
         }
-</style>
 
+    .search-box {
+        width: 220px;
+    }
+
+    .address-box {
+        width: 180px;
+    }
+
+    .select-box {
+        width: 160px;
+    }
+
+    .price-box {
+        width: 120px;
+    }
+
+    .btn-filter {
+        width: 120px;
+    }
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+    // Xử lý scroll của filter
     const filterBar = document.querySelector('.filter-bar');
-    document.querySelector('.scroll-btn.left').addEventListener('click', () => {
-        filterBar.scrollBy({ left: -200, behavior: 'smooth' });
-    });
-    document.querySelector('.scroll-btn.right').addEventListener('click', () => {
-        filterBar.scrollBy({ left: 200, behavior: 'smooth' });
-    });
+    document.querySelector('.scroll-btn.left').onclick = () => filterBar.scrollBy({ left: -200, behavior: 'smooth' });
+    document.querySelector('.scroll-btn.right').onclick = () => filterBar.scrollBy({ left: 200, behavior: 'smooth' });
 
     document.querySelectorAll('.btn-scroll').forEach(btn => {
         btn.addEventListener('click', e => {
             const targetId = e.currentTarget.getAttribute('data-target');
             document.getElementById(targetId).scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+        document.querySelectorAll(".favorite-btn").forEach(btn => {
+        btn.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const id = this.getAttribute("data-id");
+            const icon = this.querySelector("i");
+
+            $.post("@Url.Action("ToggleFavorite", "Home")", { restaurantId: id })
+                .done(res => {
+                    if (res.isFavorite) {
+                        this.classList.add("active");
+                        icon.classList.remove("bi-heart");
+                        icon.classList.add("bi-heart-fill");
+                    } else {
+                        this.classList.remove("active");
+                        icon.classList.remove("bi-heart-fill");
+                        icon.classList.add("bi-heart");
+                    }
+                })
+                .fail(() => {
+                    console.log("Lỗi AJAX: Có thể bạn chưa đăng nhập!");
+                });
         });
     });
 </script>

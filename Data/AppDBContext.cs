@@ -22,6 +22,7 @@ namespace DoAnChuyenNganh.Data
         public DbSet<UserLog> UserLogs { get; set; }
         public DbSet<StaffRestaurant> StaffRestaurants { get; set; }
 
+        public DbSet<FavoriteRestaurant> FavoriteRestaurants { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
