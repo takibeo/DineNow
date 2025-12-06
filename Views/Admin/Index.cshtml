@@ -4,6 +4,9 @@
     ViewData["Title"] = "Quản lý tài khoản";
 }
 
+<!-- DataTables CSS (chỉ CSS, KHÔNG load JS tại đây) -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
 <div class="container mt-4">
     <h2 class="mb-3">@ViewData["Title"]</h2>
 
@@ -12,7 +15,7 @@
         <div class="alert alert-success">@TempData["Success"]</div>
     }
 
-    <table class="table table-bordered table-striped">
+    <table id="usersTable" class="table table-bordered table-striped">
         <thead class="table-dark">
             <tr>
                 <th>Email</th>
@@ -33,18 +36,21 @@
                     <td>@item.role</td>
                     <td>
                         @(item.user.LockoutEnd != null && item.user.LockoutEnd > DateTime.Now
-                            ? "Bị khóa"
-                            : "Hoạt động")
+                                            ? "Bị khóa"
+                                            : "Hoạt động")
                     </td>
                     <td>
                         <a class="btn btn-sm btn-primary" asp-action="Edit" asp-route-id="@item.user.Id">Sửa</a>
+
                         <form asp-action="ToggleLock" method="post" class="d-inline">
                             <input type="hidden" name="id" value="@item.user.Id" />
                             <button type="submit" class="btn btn-sm btn-warning">
                                 @(item.user.LockoutEnd != null && item.user.LockoutEnd > DateTime.Now ? "Mở khóa" : "Khóa")
                             </button>
                         </form>
-                        <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('Xóa tài khoản này?');">
+
+                        <form asp-action="Delete" method="post" class="d-inline"
+                              onsubmit="return confirm('Xóa tài khoản này?');">
                             <input type="hidden" name="id" value="@item.user.Id" />
                             <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
                         </form>
@@ -54,3 +60,30 @@
         </tbody>
     </table>
 </div>
+
+@section Scripts {
+    <!-- JS DataTables (load ở đây để chắc chắn sau jQuery trong Layout) -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#usersTable').DataTable({
+                "paging": true,
+                "searching": true,
+                "ordering": true,
+                "lengthMenu": [5, 10, 25, 50],
+                "language": {
+                    "search": "Tìm kiếm:",
+                    "lengthMenu": "Hiển thị _MENU_ dòng",
+                    "info": "Hiển thị _START_ đến _END_ của _TOTAL_ dòng",
+                    "paginate": {
+                        "first": "Đầu",
+                        "last": "Cuối",
+                        "next": "Sau",
+                        "previous": "Trước"
+                    }
+                }
+            });
+        });
+    </script>
+}

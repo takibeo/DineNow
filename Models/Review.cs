@@ -12,5 +12,7 @@
         public User? User { get; set; }
         public Restaurant? Restaurant { get; set; }
         public SentimentAnalysisLog? SentimentAnalysis { get; set; }
+
+        public List<ReviewReply> Replies { get; set; } = new();
     }
 }

@@ -24,6 +24,8 @@ namespace DoAnChuyenNganh.Data
 
         public DbSet<FavoriteRestaurant> FavoriteRestaurants { get; set; }
 
+        public DbSet<ReviewReply> ReviewReplies { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

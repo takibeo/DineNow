@@ -1,5 +1,6 @@
 ﻿using DoAnChuyenNganh.Data;
 using DoAnChuyenNganh.Models;
+using DoAnChuyenNganh.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,12 +12,15 @@ namespace DoAnChuyenNganh.Controllers
     {
         private readonly AppDBContext _context;
         private readonly UserManager<User> _userManager;
+        private readonly SentimentService _sentiment;
 
-        public HomeController(AppDBContext context, UserManager<User> userManager)
+        public HomeController(AppDBContext context, UserManager<User> userManager, SentimentService sentiment)
         {
             _context = context;
             _userManager = userManager;
+            _sentiment = sentiment;
         }
+
 
         // Trang chủ hiển thị danh sách nhà hàng
         public async Task<IActionResult> Index(
@@ -106,13 +110,33 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> Detail(int id)
         {
             var restaurant = await _context.Restaurants
-                .Include(r => r.MenuItems)
-                .Include(r => r.Reviews!)
+                .Include(r => r.MenuItems)  // <-- BỔ SUNG DÒNG NÀY
+                .Include(r => r.Reviews)
                     .ThenInclude(rv => rv.User)
+                .Include(r => r.Reviews)
+                    .ThenInclude(rv => rv.SentimentAnalysis)
+                .Include(r => r.Reviews)
+                    .ThenInclude(rv => rv.Replies)
+                        .ThenInclude(rep => rep.User)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (restaurant == null)
                 return NotFound();
+
+            var user = await _userManager.GetUserAsync(User);
+            bool canViewAI = false;
+
+            if (user != null)
+            {
+                bool isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+
+                bool isStaffManaging = _context.StaffRestaurants
+                    .Any(s => s.RestaurantId == id && s.UserId == user.Id);
+
+                canViewAI = isAdmin || isStaffManaging;
+            }
+
+            ViewBag.CanViewAI = canViewAI;
 
             return View(restaurant);
         }
@@ -127,6 +151,7 @@ namespace DoAnChuyenNganh.Controllers
             if (user == null)
                 return Unauthorized();
 
+            // 1️⃣ Lưu review trước
             var review = new Review
             {
                 RestaurantId = restaurantId,
@@ -139,9 +164,51 @@ namespace DoAnChuyenNganh.Controllers
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
 
+            // 2️⃣ GỌI AI PHÂN TÍCH REVIEW
+            var result = await _sentiment.AnalyzeAsync(comment);
+
+            // 3️⃣ Lưu lại SentimentAnalysisLog
+            var log = new SentimentAnalysisLog
+            {
+                ReviewId = review.Id,
+                SentimentLabel = result.label,
+                SentimentScore = result.score,
+                AnalyzedAt = DateTime.Now
+            };
+
+            _context.SentimentAnalysisLogs.Add(log);
+            await _context.SaveChangesAsync();
+
             return RedirectToAction("Detail", new { id = restaurantId });
         }
 
+        [Authorize] // chỉ cần đăng nhập
+        [HttpPost]
+        public async Task<IActionResult> ReplyReview(int reviewId, string replyText)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            var review = await _context.Reviews
+                .Include(r => r.Restaurant)
+                .FirstOrDefaultAsync(r => r.Id == reviewId);
+
+            if (review == null)
+                return NotFound();
+
+            var reply = new ReviewReply
+            {
+                ReviewId = reviewId,
+                UserId = user.Id,
+                ReplyText = replyText,
+                ReplyAt = DateTime.Now
+            };
+
+            _context.ReviewReplies.Add(reply);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Detail", new { id = review.RestaurantId });
+        }
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> ToggleFavorite(int restaurantId)

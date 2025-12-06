@@ -37,7 +37,8 @@ using Microsoft.AspNetCore.Identity;
     builder.Services.AddScoped<IVnPayService, VnPayService>();
 
     builder.Services.AddScoped<PremiumService>();
-    
+
+    builder.Services.AddHttpClient<SentimentService>();
 
 // 4️⃣ Thêm Authentication (cookie)
 builder.Services.ConfigureApplicationCookie(options =>

@@ -13,7 +13,7 @@
     }
     else
     {
-        <table class="table table-bordered table-striped align-middle">
+        <table id="reservationTable" class="table table-bordered table-striped align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>#</th>
@@ -32,7 +32,7 @@
                 @foreach (var item in Model)
                 {
                     <tr>
-                        <td>@(++stt)</td> 
+                        <td>@(++stt)</td>
                         <td>@item.Restaurant?.Name</td>
                         <td>@item.ReservationDate.ToString("HH:mm dd/MM/yyyy")</td>
                         <td>@item.NumberOfGuests</td>
@@ -70,52 +70,79 @@
         </table>
     }
 </div>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const cancelButtons = document.querySelectorAll(".btn-cancel");
+@section Scripts {
+    <!-- SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-        cancelButtons.forEach(btn => {
-            btn.addEventListener("click", function () {
-                const id = this.dataset.id;
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-                Swal.fire({
-                    title: "Hủy đặt bàn?",
-                    text: "Bạn có chắc muốn hủy đơn đặt bàn này?",
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonText: "Hủy đơn",
-                    cancelButtonText: "Thoát",
-                    confirmButtonColor: "#d33",
-                    cancelButtonColor: "#6c757d"
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch(`/Reservation/GuestCancel`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/x-www-form-urlencoded",
-                                "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value
-                            },
-                            body: `id=${id}`
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire({
-                                    icon: "success",
-                                    title: "Đã hủy!",
-                                    text: "Bạn đã hủy đơn đặt bàn.",
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                }).then(() => location.reload());
-                            }
-                        });
+    <script>
+        $(document).ready(function () {
+            $("#reservationTable").DataTable({
+                "language": {
+                    "lengthMenu": "Hiển thị _MENU_ dòng",
+                    "zeroRecords": "Không tìm thấy dữ liệu",
+                    "info": "Trang _PAGE_ / _PAGES_",
+                    "infoEmpty": "Không có dữ liệu",
+                    "infoFiltered": "(lọc từ _MAX_ dòng)",
+                    "search": "Tìm kiếm:",
+                    "paginate": {
+                        "first": "Đầu",
+                        "last": "Cuối",
+                        "next": "›",
+                        "previous": "‹"
                     }
+                }
+            });
+        });
+
+        // Hủy đặt bàn
+        document.addEventListener("DOMContentLoaded", function () {
+            const cancelButtons = document.querySelectorAll(".btn-cancel");
+
+            cancelButtons.forEach(btn => {
+                btn.addEventListener("click", function () {
+                    const id = this.dataset.id;
+
+                    Swal.fire({
+                        title: "Hủy đặt bàn?",
+                        text: "Bạn có chắc muốn hủy đơn đặt bàn này?",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Hủy đơn",
+                        cancelButtonText: "Thoát",
+                        confirmButtonColor: "#d33",
+                        cancelButtonColor: "#6c757d"
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            fetch(`/Reservation/GuestCancel`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/x-www-form-urlencoded",
+                                    "RequestVerificationToken":
+                                        document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                                },
+                                body: `id=${id}`
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire({
+                                        icon: "success",
+                                        title: "Đã hủy!",
+                                        text: "Bạn đã hủy đơn đặt bàn.",
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => location.reload());
+                                }
+                            });
+                        }
+                    });
                 });
             });
         });
-    });
-</script>
-
-
+    </script>
+}

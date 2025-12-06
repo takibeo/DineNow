@@ -9,7 +9,8 @@
             <!-- 🔹 Carousel ảnh nhà hàng -->
             <div class="col-md-5 d-flex">
                 @{
-                    var images = Model.ImageUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? new string[] { "/images/no-image.png" };
+                    var images = Model.ImageUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) 
+                                 ?? new string[] { "/images/no-image.png" };
                 }
                 <div id="restaurantCarousel" class="carousel slide flex-fill" data-bs-ride="carousel">
                     <div class="carousel-inner h-100">
@@ -31,10 +32,8 @@
 
             <style>
                 #restaurantCarousel {
-                    height: 500px; /* hoặc max-height: 60vh; */
+                    height: 500px;
                 }
-
-                /* Ảnh luôn cover khung, giữ tỉ lệ */
                 .carousel-inner img {
                     width: 100%;
                     height: 100%;
@@ -42,7 +41,7 @@
                 }
             </style>
 
-
+            <!-- 🔹 Thông tin nhà hàng -->
             <div class="col-md-7 p-5">
                 <h2 class="fw-bold text-primary mb-3">
                     <i class="bi bi-shop me-2"></i>@Model.Name
@@ -58,8 +57,7 @@
                 <p class="text-muted">@Model.Description</p>
 
                 <div class="mt-4 d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-warning btn-rounded"
-                            data-bs-toggle="modal" data-bs-target="#menuModal">
+                    <button type="button" class="btn btn-warning btn-rounded" data-bs-toggle="modal" data-bs-target="#menuModal">
                         <i class="bi bi-list-ul"></i> Xem thực đơn
                     </button>
 
@@ -76,83 +74,166 @@
         </div>
     </div>
 
-    <!-- 🔹 Đánh giá -->
+    <!-- =========================================================== -->
+    <!-- 🔹 FORM ĐÁNH GIÁ -->
+    <!-- =========================================================== -->
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <div class="card shadow-sm rounded-4 p-4 mt-5">
+            <form asp-action="AddReview" method="post">
+                <input type="hidden" name="restaurantId" value="@Model.Id" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Chọn số sao:</label>
+                    <div id="star-rating" class="text-warning fs-4">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <i class="bi bi-star" data-value="@i" style="cursor:pointer;"></i>
+                        }
+                    </div>
+                    <input type="hidden" id="rating" name="rating" value="0" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nhận xét:</label>
+                    <textarea class="form-control" name="comment" rows="3" placeholder="Viết cảm nhận của bạn..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-send-fill me-1"></i> Gửi đánh giá
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mt-3">
+            <a asp-controller="Account" asp-action="Login" class="text-primary">Đăng nhập</a> để viết đánh giá của bạn.
+        </p>
+    }
+
+    <!-- =========================================================== -->
+    <!-- 🔹 DANH SÁCH ĐÁNH GIÁ -->
+    <!-- =========================================================== -->
+
     <hr class="my-5" />
+
     <div class="container">
         <h4 class="fw-bold text-primary mb-4">
-            <i class="bi bi-star-fill text-warning me-2"></i> Đánh giá & nhận xét
+            <i class="bi bi-chat-dots-fill text-warning me-2"></i> Đánh giá & phản hồi
         </h4>
 
         @if (Model.Reviews != null && Model.Reviews.Any())
         {
             <div class="list-group mb-4">
+
                 @foreach (var review in Model.Reviews.OrderByDescending(r => r.CreatedAt))
                 {
-                    <div class="list-group-item border-0 shadow-sm mb-3 rounded-3 p-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>@(review.User?.FullName ?? "Người dùng")</strong>
-                            <small class="text-muted">@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
-                        </div>
-                        <div class="text-warning my-1">
-                            @for (int i = 1; i <= 5; i++)
-                            {
-                                if (i <= review.Rating)
+                    <div class="list-group-item p-4 mb-4 shadow-sm rounded-4 border-0 review-card">
+
+                        <!-- User + Time -->
+                        <div class="d-flex justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                                     style="width:45px; height:45px; font-size:18px;">
+                                    @review.User?.FullName?.Substring(0, 1).ToUpper()
+                                </div>
+
+                                <div>
+                                    <strong class="text-dark fs-6">@review.User?.FullName</strong>
+                                    <div class="text-muted small">@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                </div>
+                            </div>
+
+                            <!-- ⭐ Rating -->
+                            <div class="text-warning fs-6">
+                                @for (int i = 1; i <= 5; i++)
                                 {
-                                    <i class="bi bi-star-fill"></i>
+                                    <i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")"></i>
                                 }
-                                else
-                                {
-                                    <i class="bi bi-star"></i>
-                                }
-                            }
+                            </div>
                         </div>
-                        <p class="mb-0 text-secondary">@review.Comment</p>
+
+                        <!-- Comment -->
+                        <p class="mt-3 text-secondary fs-6">@review.Comment</p>
+
+                        <!-- AI sentiment -->
+                        @if (ViewBag.CanViewAI == true && review.SentimentAnalysis != null)
+                        {
+                            <span class="badge bg-info text-dark px-3 py-2">
+                                🤖 AI: @review.SentimentAnalysis.SentimentLabel
+                                (@review.SentimentAnalysis.SentimentScore.ToString("0.00"))
+                            </span>
+                        }
+
+                        <!-- Reply Button -->
+                        <button class="btn btn-sm btn-outline-primary mt-3 rounded-pill"
+                                onclick="toggleReplyForm(@review.Id)">
+                            <i class="bi bi-reply-fill"></i> Phản hồi
+                        </button>
+
+                        <!-- Reply Form -->
+                        <form id="reply-form-@review.Id"
+                              class="mt-3 p-3 rounded-3 bg-light d-none"
+                              method="post" asp-action="ReplyReview">
+
+                            <input type="hidden" name="reviewId" value="@review.Id" />
+
+                            <textarea name="replyText"
+                                      class="form-control mb-2 rounded-3"
+                                      rows="2"
+                                      placeholder="Nhập phản hồi của bạn..."
+                                      required></textarea>
+
+                            <button type="submit" class="btn btn-success btn-sm px-3 rounded-pill">
+                                <i class="bi bi-send-fill"></i> Gửi phản hồi
+                            </button>
+                        </form>
+
+                        <!-- Replies -->
+                        @if (review.Replies != null && review.Replies.Any())
+                        {
+                            <div class="mt-3 border-start ps-3">
+                                @foreach (var rep in review.Replies.OrderBy(r => r.ReplyAt))
+                                {
+                                    <div class="reply-item mb-3">
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                                                 style="width:35px; height:35px; font-size:14px;">
+                                                @rep.User?.FullName?.Substring(0, 1).ToUpper()
+                                            </div>
+
+                                            <div>
+                                                <strong class="text-dark">@rep.User?.FullName</strong>
+                                                <div class="small text-muted">@rep.ReplyAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-2 text-secondary">@rep.ReplyText</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
                     </div>
                 }
+
             </div>
         }
         else
         {
             <p class="text-muted fst-italic">Chưa có đánh giá nào cho nhà hàng này.</p>
         }
-
-        @if (User.Identity.IsAuthenticated)
-        {
-            <div class="card shadow-sm rounded-4 p-4">
-                <form asp-action="AddReview" method="post">
-                    <input type="hidden" name="restaurantId" value="@Model.Id" />
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Chọn số sao:</label>
-                        <div id="star-rating" class="text-warning fs-4">
-                            @for (int i = 1; i <= 5; i++)
-                            {
-                                <i class="bi bi-star" data-value="@i" style="cursor:pointer;"></i>
-                            }
-                        </div>
-                        <input type="hidden" id="rating" name="rating" value="0" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nhận xét:</label>
-                        <textarea class="form-control" name="comment" rows="3" placeholder="Viết cảm nhận của bạn..." required></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">
-                        <i class="bi bi-send-fill me-1"></i> Gửi đánh giá
-                    </button>
-                </form>
-            </div>
-        }
-        else
-        {
-            <p class="text-muted mt-3">
-                <a asp-controller="Account" asp-action="Login" class="text-primary">Đăng nhập</a> để viết đánh giá của bạn.
-            </p>
-        }
     </div>
 
-<!-- 🔹 Modal thực đơn -->
+</div>
+
+<!-- =========================================================== -->
+<!-- 🔹 MODAL MENU -->
+<!-- =========================================================== -->
+
 <div class="modal fade" id="menuModal" tabindex="-1" aria-labelledby="menuModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -164,69 +245,69 @@
             </div>
 
             <div class="modal-body">
- @if (Model.MenuItems != null && Model.MenuItems.Any())
-{
-    {
-        // ✅ Danh sách thứ tự ưu tiên cho các danh mục
-        var categories = new List<string> { "Khai vị", "Món chính", "Tráng miệng", "Nước uống" };
 
-        // ✅ Hàm xếp thứ tự danh mục
-        Func<string, int> getIndex = (key) =>
-        {
-            var k = string.IsNullOrEmpty(key) ? "Khác" : key;
-            var idx = categories.IndexOf(k);
-            return idx == -1 ? int.MaxValue : idx;
-        };
-
-        // ✅ Nhóm món ăn theo danh mục
-        var groupedMenu = Model.MenuItems
-            .GroupBy(m => string.IsNullOrEmpty(m.Category) ? "Khác" : m.Category)
-            .OrderBy(g => getIndex(g.Key));
-
-        <h4 class="fw-bold text-primary mt-5 mb-4 fade-in-up">
-            <i class="bi bi-list-ul me-2"></i>Thực đơn
-        </h4>
-
-        // ✅ Hiển thị từng nhóm danh mục
-        foreach (var group in groupedMenu)
-        {
-            <h5 class="mt-4 mb-3 text-warning fw-bold">
-                <i class="bi bi-tag-fill me-2"></i>@group.Key
-            </h5>
-
-            <div class="row">
-                @foreach (var item in group)
+                @if (Model.MenuItems != null && Model.MenuItems.Any())
                 {
-                                        <div class="col-md-4 mb-4 fade-in-up">
-                                            <div class="card border-0 shadow-sm rounded-4 h-100">
-                                                <img src="@item.ImageUrl" alt="@item.Name"
-                                                     class="card-img-top rounded-top-4"
-                                                     style="height:250px; object-fit:cover;" />
+                    // 🔹 Khởi tạo danh mục ưu tiên
+                    var categories = new List<string> { "Khai vị", "Món chính", "Tráng miệng", "Nước uống" };
 
-                                                @if (item.Category != "Menu ảnh")
+                    // 🔹 Hàm xác định thứ tự
+                    Func<string, int> getIndex = (key) =>
+                    {
+                        var k = string.IsNullOrEmpty(key) ? "Khác" : key;
+                        var idx = categories.IndexOf(k);
+                        return idx == -1 ? int.MaxValue : idx;
+                    };
+
+                    // 🔹 Nhóm món ăn
+                    var groupedMenu = Model.MenuItems
+                    .GroupBy(m => string.IsNullOrEmpty(m.Category) ? "Khác" : m.Category)
+                    .OrderBy(g => getIndex(g.Key));
+
+                    <h4 class="fw-bold text-primary mt-5 mb-4 fade-in-up">
+                        <i class="bi bi-list-ul me-2"></i>Thực đơn
+                    </h4>
+
+                    @foreach (var group in groupedMenu)
+                    {
+                        <h5 class="mt-4 mb-3 text-warning fw-bold">
+                            <i class="bi bi-tag-fill me-2"></i>@group.Key
+                        </h5>
+
+                        <div class="row">
+                            @foreach (var item in group)
+                            {
+                                <div class="col-md-4 mb-4 fade-in-up">
+                                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                                        <img src="@item.ImageUrl" alt="@item.Name"
+                                             class="card-img-top rounded-top-4"
+                                             style="height:250px; object-fit:cover;" />
+
+                                        @if (item.Category != "Menu ảnh")
+                                        {
+                                            <div class="card-body">
+                                                <h6 class="fw-semibold text-dark">@item.Name</h6>
+
+                                                @if (!string.IsNullOrEmpty(item.Description))
                                                 {
-                                                    <div class="card-body">
-                                                        <h6 class="fw-semibold text-dark">@item.Name</h6>
-                                                        @if (!string.IsNullOrEmpty(item.Description))
-                                                        {
-                                                            <p class="text-muted small">@item.Description</p>
-                                                        }
-                                                        <p class="fw-bold text-success mb-0">
-                                                            <i class="bi bi-currency-dollar"></i> @item.Price.ToString("C")
-                                                        </p>
-                                                    </div>
+                                                    <p class="text-muted small">@item.Description</p>
                                                 }
+
+                                                <p class="fw-bold text-success mb-0">
+                                                    <i class="bi bi-currency-dollar"></i> @item.Price.ToString("C")
+                                                </p>
                                             </div>
-                                        </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                 }
-            </div>
-        }
-    }
-}
-else
-{
-    <p class="text-muted fst-italic">Chưa có món ăn nào trong thực đơn.</p>
-}
+                else
+                {
+                    <p class="text-muted fst-italic">Chưa có món ăn nào trong thực đơn.</p>
+                }
 
             </div>
 
@@ -239,39 +320,48 @@ else
     </div>
 </div>
 
-    <style>
-        /* 🔹 Carousel luôn chiếm 100% chiều cao cột */
-        .carousel-inner img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-    </style>
-    @section Scripts {
-        <script>
-            document.addEventListener("DOMContentLoaded", () => {
-                // ⭐ Star rating
-                const stars = document.querySelectorAll("#star-rating i");
-                const ratingInput = document.getElementById("rating");
+<style>
+    .review-card:hover {
+        transform: scale(1.01);
+        transition: 0.2s ease-in-out;
+    }
+    .reply-item {
+        background: #f8f9fa;
+        padding: 10px 12px;
+        border-radius: 10px;
+    }
+</style>
 
-                if (stars && ratingInput) {
-                    stars.forEach(star => {
-                        star.addEventListener("click", () => {
-                            const value = parseInt(star.getAttribute("data-value"));
-                            ratingInput.value = value;
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
 
-                            stars.forEach((s, i) => {
-                                if (i < value) {
-                                    s.classList.add("bi-star-fill");
-                                    s.classList.remove("bi-star");
-                                } else {
-                                    s.classList.add("bi-star");
-                                    s.classList.remove("bi-star-fill");
-                                }
-                            });
+            // ⭐ Star rating
+            const stars = document.querySelectorAll("#star-rating i");
+            const ratingInput = document.getElementById("rating");
+
+            if (stars && ratingInput) {
+                stars.forEach(star => {
+                    star.addEventListener("click", () => {
+                        const value = parseInt(star.getAttribute("data-value"));
+                        ratingInput.value = value;
+
+                        stars.forEach((s, i) => {
+                            if (i < value) {
+                                s.classList.add("bi-star-fill");
+                                s.classList.remove("bi-star");
+                            } else {
+                                s.classList.add("bi-star");
+                                s.classList.remove("bi-star-fill");
+                            }
                         });
                     });
-                }
+                });
+            }
+        });
 
-        </script>
-    }
+        function toggleReplyForm(id) {
+            document.getElementById("reply-form-" + id).classList.toggle("d-none");
+        }
+    </script>
+}

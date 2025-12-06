@@ -5,10 +5,12 @@
     var restaurants = ViewBag.Restaurants as IEnumerable<dynamic>;
 }
 
-<!-- ✅ SweetAlert2 & Bootstrap Icons -->
+<!-- CSS & Icon & SweetAlert -->
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
 <style>
     .fade-in {
@@ -54,7 +56,7 @@
         <i class="bi bi-shop me-2 text-primary"></i>Danh sách nhà hàng trong hệ thống
     </h2>
 
-    <table class="table table-bordered table-striped align-middle text-center shadow-sm">
+    <table id="restaurantsTable" class="table table-bordered table-striped align-middle text-center shadow-sm">
         <thead class="table-dark">
             <tr>
                 <th>#</th>
@@ -64,12 +66,10 @@
                 <th>Chức năng</th>
             </tr>
         </thead>
-        @{
-            int stt = 0;
-        }
         <tbody>
             @if (restaurants != null && restaurants.Any())
             {
+                int stt = 0;
                 foreach (var item in restaurants)
                 {
                     <tr>
@@ -101,8 +101,6 @@
                             }
                         </td>
                         <td>
-
-                            <!-- ✅ Duyệt nhà hàng (nếu chưa duyệt) -->
                             @if (!item.IsApproved)
                             {
                                 <button class="btn btn-sm btn-success me-1"
@@ -116,14 +114,11 @@
                                 <i class="bi bi-eye"></i> Xem
                             </a>
 
-
-                            <!-- ✏️ Sửa -->
                             <a href="@Url.Action("Edit", "Restaurant", new { id = item.Id })"
                                class="btn btn-sm btn-warning me-1">
                                 <i class="bi bi-pencil-square"></i> Sửa
                             </a>
 
-                            <!-- ❌ Xóa -->
                             <button type="button"
                                     class="btn btn-sm btn-danger"
                                     onclick="confirmDelete('@item.Id', '@item.Name')">
@@ -143,81 +138,104 @@
     </table>
 </div>
 
-<script>
-    // ✅ Xác nhận xóa bằng SweetAlert2
-    function confirmDelete(id, name) {
-        Swal.fire({
-            title: "Xác nhận xóa?",
-            text: `Bạn có chắc muốn xóa nhà hàng "${name}" không?`,
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#d33",
-            cancelButtonColor: "#6c757d",
-            confirmButtonText: "Xóa ngay!",
-            cancelButtonText: "Hủy"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/Admin/DeleteRestaurant/${id}`, {
-                    method: 'POST'
-                })
-                .then(response => {
-                    if (response.ok) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "Đã xóa!",
-                            text: `Nhà hàng "${name}" đã được xóa.`,
-                            showConfirmButton: false,
-                            timer: 1500
-                        }).then(() => location.reload());
-                    } else {
-                        Swal.fire("Lỗi!", "Không thể xóa nhà hàng này.", "error");
-                    }
-                });
-            }
-        });
-    }
+@section Scripts {
+    <!-- SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    // ✅ Phê duyệt nhà hàng
-    function approveRestaurant(id, name) {
-        Swal.fire({
-            title: "Duyệt nhà hàng?",
-            text: `Bạn có chắc muốn duyệt "${name}" để hiển thị lên hệ thống?`,
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#198754",
-            cancelButtonColor: "#6c757d",
-            confirmButtonText: "Duyệt ngay!",
-            cancelButtonText: "Hủy"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/Admin/ApproveRestaurant/${id}`, {
-                    method: 'POST'
-                })
-                .then(response => {
-                    if (response.ok) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "Đã duyệt!",
-                            text: `"${name}" đã được phê duyệt.`,
-                            showConfirmButton: false,
-                            timer: 1500
-                        }).then(() => location.reload());
-                    } else {
-                        Swal.fire("Lỗi!", "Không thể duyệt nhà hàng.", "error");
+    <!-- DataTables JS (load sau jQuery trong Layout) -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#restaurantsTable').DataTable({
+                "paging": true,
+                "searching": true,
+                "ordering": true,
+                "lengthMenu": [5, 10, 25, 50],
+                "language": {
+                    "search": "Tìm kiếm:",
+                    "lengthMenu": "Hiển thị _MENU_ dòng",
+                    "info": "Hiển thị _START_ đến _END_ của _TOTAL_ dòng",
+                    "paginate": {
+                        "first": "Đầu",
+                        "last": "Cuối",
+                        "next": "Sau",
+                        "previous": "Trước"
                     }
-                });
-            }
-        });
-    }
-    @if (TempData["Error"] != null)
-    {
-        <text>
-            Swal.fire({
-                icon: "error",
-                title: "Lỗi!",
-                text: "@TempData["Error"]",
-                showConfirmButton: true
+                }
             });
-        </text>
-    }
-</script>
+        });
+
+        function confirmDelete(id, name) {
+            Swal.fire({
+                title: "Xác nhận xóa?",
+                text: `Bạn có chắc muốn xóa nhà hàng "${name}" không?`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Xóa ngay!",
+                cancelButtonText: "Hủy"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Admin/DeleteRestaurant/${id}`, { method: 'POST' })
+                        .then(response => {
+                            if (response.ok) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Đã xóa!",
+                                    text: `Nhà hàng "${name}" đã được xóa.`,
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => location.reload());
+                            } else {
+                                Swal.fire("Lỗi!", "Không thể xóa nhà hàng này.", "error");
+                            }
+                        });
+                }
+            });
+        }
+
+        function approveRestaurant(id, name) {
+            Swal.fire({
+                title: "Duyệt nhà hàng?",
+                text: `Bạn có chắc muốn duyệt "${name}" để hiển thị lên hệ thống?`,
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: "#198754",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Duyệt ngay!",
+                cancelButtonText: "Hủy"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Admin/ApproveRestaurant/${id}`, { method: 'POST' })
+                        .then(response => {
+                            if (response.ok) {
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Đã duyệt!",
+                                    text: `"${name}" đã được phê duyệt.`,
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => location.reload());
+                            } else {
+                                Swal.fire("Lỗi!", "Không thể duyệt nhà hàng.", "error");
+                            }
+                        });
+                }
+            });
+        }
+
+        @if (TempData["Error"] != null)
+        {
+                <text>
+                Swal.fire({
+                    icon: "error",
+                    title: "Lỗi!",
+                    text: "@TempData["Error"]",
+                    showConfirmButton: true
+                });
+                </text>
+        }
+    </script>
+}
