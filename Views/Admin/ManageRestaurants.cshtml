@@ -57,20 +57,23 @@
     <table class="table table-bordered table-striped align-middle text-center shadow-sm">
         <thead class="table-dark">
             <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Tên nhà hàng</th>
                 <th>Nhân viên quản lý</th>
                 <th>Trạng thái</th>
                 <th>Chức năng</th>
             </tr>
         </thead>
+        @{
+            int stt = 0;
+        }
         <tbody>
             @if (restaurants != null && restaurants.Any())
             {
                 foreach (var item in restaurants)
                 {
                     <tr>
-                        <td>@item.Id</td>
+                        <td>@(++stt)</td>
                         <td>@item.Name</td>
                         <td>
                             @if (item.Staffs != null && item.Staffs.Count > 0)

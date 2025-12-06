@@ -22,6 +22,27 @@ namespace DoAnChuyenNganh.Controllers
             _context = context;
         }
 
+        private async Task SaveNotification(string userId, string message)
+        {
+            // Lấy thông tin người gửi (Admin hoặc Staff)
+            var sender = await _userManager.GetUserAsync(User);
+            var phone = sender?.PhoneNumber ?? "Không có";
+
+            // Thêm dòng hỗ trợ vào message
+            message += $"\n\nMọi thắc mắc xin vui lòng liên hệ số điện thoại: {phone}";
+
+            var noti = new Notification
+            {
+                UserId = userId,
+                Message = message,
+                Type = "System",
+                CreatedAt = DateTime.Now,
+                IsRead = false
+            };
+
+            _context.Notifications.Add(noti);
+            await _context.SaveChangesAsync();
+        }
         // 📋 Danh sách tài khoản
         public async Task<IActionResult> Index()
         {
@@ -82,20 +103,31 @@ namespace DoAnChuyenNganh.Controllers
         }
 
         // 🔒 Khóa hoặc mở khóa tài khoản
+        // 🔒 Khóa hoặc mở khóa tài khoản
         [HttpPost]
         public async Task<IActionResult> ToggleLock(string id)
         {
+            if (string.IsNullOrEmpty(id)) return NotFound();
+
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            if (user.LockoutEnd == null || user.LockoutEnd <= DateTime.Now)
+            var admin = await _userManager.GetUserAsync(User); // Admin hiện tại
+            if (admin == null) return Forbid();
+
+            // Nếu user chưa bị khóa hoặc đã hết hạn khóa
+            if (user.LockoutEnd == null || user.LockoutEnd <= DateTimeOffset.Now)
             {
-                user.LockoutEnd = DateTime.Now.AddYears(100);
+                user.LockoutEnabled = true;                 // bật chế độ khóa
+                user.LockoutEnd = DateTimeOffset.Now.AddYears(100); // khóa dài hạn
+                user.LockedByAdminId = admin.Id;            // lưu admin đã khóa
+
                 TempData["Success"] = $"Đã khóa tài khoản {user.UserName}";
             }
-            else
+            else // Mở khóa
             {
                 user.LockoutEnd = null;
+                user.LockedByAdminId = null; // xóa admin đã khóa
                 TempData["Success"] = $"Đã mở khóa tài khoản {user.UserName}";
             }
 
@@ -161,8 +193,6 @@ namespace DoAnChuyenNganh.Controllers
             return View();
         }
 
-
-
         // ❌ Xóa nhà hàng
         [HttpPost]
         public async Task<IActionResult> DeleteRestaurant(int id)
@@ -174,28 +204,61 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction(nameof(ManageRestaurants));
             }
 
+            // Lấy danh sách Staff quản lý trước khi xóa
+            var staffList = await _context.StaffRestaurants
+                .Where(sr => sr.RestaurantId == restaurant.Id)
+                .Select(sr => sr.UserId)
+                .ToListAsync();
+
+            // Xóa liên kết StaffRestaurant
+            var staffLinks = await _context.StaffRestaurants
+                .Where(sr => sr.RestaurantId == id)
+                .ToListAsync();
+            _context.StaffRestaurants.RemoveRange(staffLinks);
+
+            // Xóa nhà hàng
             _context.Restaurants.Remove(restaurant);
             await _context.SaveChangesAsync();
+
+            // Gửi thông báo cho Staff quản lý
+            foreach (var staffId in staffList)
+            {
+                await SaveNotification(
+                    staffId,
+                    $"Admin đã xóa nhà hàng bạn quản lý: {restaurant.Name}."
+                );
+            }
 
             TempData["Success"] = $"Đã xóa nhà hàng: {restaurant.Name}";
             return RedirectToAction(nameof(ManageRestaurants));
         }
 
+        // ✅ Phê duyệt nhà hàng
         [HttpPost]
         public async Task<IActionResult> ApproveRestaurant(int id)
         {
             var restaurant = await _context.Restaurants.FindAsync(id);
-            if (restaurant == null)
-            {
-                return NotFound();
-            }
+            if (restaurant == null) return NotFound();
 
             restaurant.IsApproved = true;
             await _context.SaveChangesAsync();
 
-            return Ok(new { success = true, id = restaurant.Id, name = restaurant.Name });
+            // Thông báo cho Staff quản lý
+            var staffList = await _context.StaffRestaurants
+                .Where(sr => sr.RestaurantId == restaurant.Id)
+                .Select(sr => sr.UserId)
+                .ToListAsync();
+
+            foreach (var staffId in staffList)
+            {
+                await SaveNotification(
+                    staffId,
+                    $"Nhà hàng '{restaurant.Name}' đã được Admin phê duyệt."
+                );
+            }
+
+            TempData["Success"] = $"Đã phê duyệt nhà hàng: {restaurant.Name}";
+            return RedirectToAction(nameof(ManageRestaurants));
         }
-
-
     }
 }

@@ -70,10 +70,10 @@
                                 <a asp-action="Edit" asp-route-id="@restaurant.Id"
                                    class="btn btn-outline-warning btn-sm flex-fill"><i class="bi bi-pencil-square me-1"></i> Sửa</a>
 
-                                <button type="button" class="btn btn-outline-danger btn-sm flex-fill"
-                                        onclick="confirmDelete(@restaurant.Id, '@restaurant.Name')">
+                                <a asp-action="Delete" asp-route-id="@restaurant.Id"
+                                   class="btn btn-outline-danger btn-sm flex-fill">
                                     <i class="bi bi-trash3 me-1"></i> Xóa
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </div>

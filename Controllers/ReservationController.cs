@@ -1,10 +1,11 @@
-﻿using System.Security.Claims;
-using DoAnChuyenNganh.Data;
+﻿using DoAnChuyenNganh.Data;
 using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace DoAnChuyenNganh.Controllers
 {
@@ -13,11 +14,13 @@ namespace DoAnChuyenNganh.Controllers
     {
         private readonly AppDBContext _context;
         private readonly IEmailSender _emailSender;
+        private readonly UserManager<User> _userManager;
 
-        public ReservationController(AppDBContext context, IEmailSender emailSender)
+        public ReservationController(AppDBContext context, IEmailSender emailSender,UserManager<User> userManager)
         {
             _context = context;
             _emailSender = emailSender;
+            _userManager = userManager;
         }
 
         // ✅ Ghi log người dùng (đồng nhất với AccountController)
@@ -36,6 +39,13 @@ namespace DoAnChuyenNganh.Controllers
 
         private async Task SaveNotification(string userId, string message)
         {
+            // Lấy thông tin người gửi (Admin hoặc Staff)
+            var sender = await _userManager.GetUserAsync(User);
+            var phone = sender?.PhoneNumber ?? "Không có";
+
+            // Thêm dòng hỗ trợ vào message
+            message += $"\n\nMọi thắc mắc xin vui lòng liên hệ số điện thoại: {phone}";
+
             var noti = new Notification
             {
                 UserId = userId,

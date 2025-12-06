@@ -8,6 +8,7 @@
         </h3>
 
         <form asp-action="Login" method="post">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
             <!-- Email -->
             <div class="mb-3">
@@ -31,7 +32,6 @@
                 </div>
                 <span asp-validation-for="Password" class="text-danger"></span>
             </div>
-
 
             <!-- Remember me -->
             <div class="form-check mb-3">

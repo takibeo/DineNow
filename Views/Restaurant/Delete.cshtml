@@ -20,7 +20,8 @@
         <div class="text-center mb-4">
             @if (!string.IsNullOrEmpty(Model.ImageUrl))
             {
-                <img src="@Model.ImageUrl" class="img-fluid rounded shadow-sm mb-3" style="max-width:300px;" />
+                var firstImage = Model.ImageUrl.Split(';', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                <img src="@firstImage" class="img-fluid rounded shadow-sm mb-3" style="max-width:300px;" />
             }
             <p><strong>Địa chỉ:</strong> @Model.Address</p>
             <p><strong>Thành phố:</strong> @Model.City</p>
@@ -39,12 +40,13 @@
 </div>
 
 <form asp-action="Delete" method="post" id="deleteForm">
-    <input type="hidden" asp-for="Id" />
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@Model.Id" />
 </form>
-
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        document.getElementById('confirmDelete').addEventListener('click', function (e) {
+        document.getElementById('confirmDelete').addEventListener('click', function(e){
             e.preventDefault();
             Swal.fire({
                 title: 'Xác nhận xóa?',
@@ -55,11 +57,12 @@
                 cancelButtonText: 'Hủy',
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d'
-            }).then((result) => {
-                if (result.isConfirmed) {
+            }).then((result)=>{
+                if(result.isConfirmed){
                     document.getElementById('deleteForm').submit();
                 }
             });
         });
     </script>
 }
+

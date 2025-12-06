@@ -191,7 +191,24 @@
                                 showConfirmButton: false
                             });
 
-                            setTimeout(() => location.reload(), 1200);
+                            // 🔥 Xóa tất cả thẻ notification-card khỏi DOM
+                            document.querySelectorAll(".notification-card").forEach(card => card.remove());
+
+                            // 🔥 Nếu muốn, cũng có thể cập nhật số lượng thông báo
+                            const countText = document.querySelector("span.text-muted");
+                            if (countText) countText.textContent = "Bạn có 0 thông báo";
+
+                            // 🔥 Thêm box “Không có thông báo” nếu muốn
+                            const listGroup = document.querySelector(".list-group");
+                            if (listGroup) {
+                                const emptyBox = document.createElement("div");
+                                emptyBox.classList.add("empty-box", "animate__animated", "animate__fadeIn");
+                                emptyBox.innerHTML = `
+                                    <i class="bi bi-inbox text-secondary" style="font-size: 50px;"></i>
+                                    <p class="mt-3 text-muted">Không có thông báo nào.</p>
+                                `;
+                                listGroup.appendChild(emptyBox);
+                            }
                         }
                     })
                     .catch(function () {

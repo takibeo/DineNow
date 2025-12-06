@@ -32,7 +32,7 @@
                 @foreach (var item in Model)
                 {
                     <tr>
-                        <td>@(++stt)</td>   <!-- Số thứ tự 1,2,3,4 -->
+                        <td>@(++stt)</td> 
                         <td>@item.Restaurant?.Name</td>
                         <td>@item.ReservationDate.ToString("HH:mm dd/MM/yyyy")</td>
                         <td>@item.NumberOfGuests</td>

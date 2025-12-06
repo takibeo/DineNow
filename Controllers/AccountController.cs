@@ -81,21 +81,42 @@ namespace DoAnChuyenNganh.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            if (ModelState.IsValid)
-            {
-                var result = await _signInManager.PasswordSignInAsync(
-                    model.Email, model.Password, model.RememberMe, lockoutOnFailure: true);
+            if (!ModelState.IsValid)
+                return View(model);
 
-                if (result.Succeeded)
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                ModelState.AddModelError("", "Sai email hoặc mật khẩu!");
+                return View(model);
+            }
+
+            // 🔒 Kiểm tra nếu tài khoản bị khóa bởi Admin
+            if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.Now)
+            {
+                string adminPhone = "Admin";
+                if (!string.IsNullOrEmpty(user.LockedByAdminId))
                 {
-                    var user = await _userManager.FindByEmailAsync(model.Email);
-                    await SaveUserLog(user.Id, "Login", "Đăng nhập thành công");
-                    _logger.LogInformation($"Người dùng {model.Email} đăng nhập thành công.");
-                    return RedirectToAction("Index", "Home");
+                    var admin = await _userManager.FindByIdAsync(user.LockedByAdminId);
+                    if (admin != null)
+                        adminPhone = admin.PhoneNumber ?? "không có số điện thoại";
                 }
 
-                ModelState.AddModelError("", "Sai email hoặc mật khẩu!");
+                ModelState.AddModelError("", $"Tài khoản của bạn đang bị tạm khóa. Vui lòng liên hệ số điện thoại {adminPhone} để được giải quyết.");
+                return View(model);
             }
+
+            // 🔑 Đăng nhập (không bật lockoutOnFailure, để không override thông báo)
+            var result = await _signInManager.PasswordSignInAsync(
+                user.UserName, model.Password, model.RememberMe, lockoutOnFailure: false);
+
+            if (result.Succeeded)
+            {
+                await SaveUserLog(user.Id, "Login", "Đăng nhập thành công");
+                return RedirectToAction("Index", "Home");
+            }
+
+            ModelState.AddModelError("", "Sai email hoặc mật khẩu!");
             return View(model);
         }
 
