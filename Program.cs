@@ -40,6 +40,10 @@ using Microsoft.AspNetCore.Identity;
 
     builder.Services.AddHttpClient<SentimentService>();
 
+    builder.Services.AddScoped<AIRecommendationService>();
+
+    builder.Services.AddScoped<CollaborativeFilteringService>();
+
 // 4️⃣ Thêm Authentication (cookie)
 builder.Services.ConfigureApplicationCookie(options =>
     {

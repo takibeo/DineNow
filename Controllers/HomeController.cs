@@ -13,86 +13,104 @@ namespace DoAnChuyenNganh.Controllers
         private readonly AppDBContext _context;
         private readonly UserManager<User> _userManager;
         private readonly SentimentService _sentiment;
+        private readonly AIRecommendationService _aiRecommend;
+        private readonly CollaborativeFilteringService _cf;
 
-        public HomeController(AppDBContext context, UserManager<User> userManager, SentimentService sentiment)
+        public HomeController(
+            AppDBContext context,
+            UserManager<User> userManager,
+            SentimentService sentiment,
+            AIRecommendationService aiRecommend,
+            CollaborativeFilteringService cf
+        )
         {
             _context = context;
             _userManager = userManager;
             _sentiment = sentiment;
+            _aiRecommend = aiRecommend;
+            _cf = cf;
         }
-
 
         // Trang chủ hiển thị danh sách nhà hàng
         public async Task<IActionResult> Index(
-    string? search,
-    string? city,
-    string? address,
-    string? cuisine,
-    int? rating,
-    decimal? minPrice,
-    decimal? maxPrice)
+            string? search,
+            string? city,
+            string? address,
+            string? cuisine,
+            int? rating,
+            decimal? minPrice,
+            decimal? maxPrice)
         {
             var query = _context.Restaurants
                 .Include(r => r.Reviews)
-                .Where(r => r.IsApproved == true)
+                .Where(r => r.IsApproved)
                 .AsQueryable();
 
-            // 🔎 Tìm kiếm theo tên hoặc mô tả
+            // 🔎 Search
             if (!string.IsNullOrEmpty(search))
-            {
                 query = query.Where(r =>
                     r.Name.Contains(search) ||
                     r.Description.Contains(search)
                 );
-            }
 
-            // 🏙 Thành phố
+            // 🏙 City
             if (!string.IsNullOrEmpty(city))
                 query = query.Where(r => r.City.Contains(city));
 
-            // 📍 Địa chỉ
+            // 📍 Address
             if (!string.IsNullOrEmpty(address))
                 query = query.Where(r => r.Address.Contains(address));
 
-            // 🍱 Loại món
+            // 🍱 Cuisine
             if (!string.IsNullOrEmpty(cuisine))
                 query = query.Where(r => r.CuisineType.Contains(cuisine));
 
             // ⭐ Rating
             if (rating.HasValue)
-            {
                 query = query.Where(r =>
                     r.Reviews.Any() &&
                     r.Reviews.Average(rv => rv.Rating) >= rating.Value
                 );
-            }
 
-            // 💰 Giá trung bình
+            // 💰 Price
             if (minPrice.HasValue)
                 query = query.Where(r => r.AveragePrice >= minPrice.Value);
 
             if (maxPrice.HasValue)
                 query = query.Where(r => r.AveragePrice <= maxPrice.Value);
 
-            // Lấy data + rating trung bình
+            // ✅ Lấy restaurants + rating
             var restaurants = await query
                 .Select(r => new
                 {
                     Restaurant = r,
-                    AverageRating = r.Reviews.Any() ? r.Reviews.Average(rv => rv.Rating) : 0
+                    AverageRating = r.Reviews.Any() ?
+                        r.Reviews.Average(rv => rv.Rating) :
+                        0
                 })
                 .ToListAsync();
 
-            // Truyền rating sang view
             ViewBag.RestaurantRatings = restaurants.ToDictionary(
-                x => x.Restaurant.Id, x => x.AverageRating);
+                x => x.Restaurant.Id,
+                x => x.AverageRating
+            );
 
-            // Dropdown dữ liệu
-            ViewBag.Cities = await _context.Restaurants.Select(r => r.City).Distinct().ToListAsync();
-            ViewBag.Cuisines = await _context.Restaurants.Select(r => r.CuisineType).Distinct().ToListAsync();
+            // Dropdown
+            ViewBag.Cities = await _context.Restaurants
+                .Select(r => r.City)
+                .Distinct()
+                .ToListAsync();
 
+            ViewBag.Cuisines = await _context.Restaurants
+                .Select(r => r.CuisineType)
+                .Distinct()
+                .ToListAsync();
+
+            // ❤️ Favorite
             var user = await _userManager.GetUserAsync(User);
             var favoriteIds = new List<int>();
+
+            List<Restaurant> recommendations = new();
 
             if (user != null)
             {
@@ -100,9 +118,28 @@ namespace DoAnChuyenNganh.Controllers
                     .Where(f => f.UserId == user.Id)
                     .Select(f => f.RestaurantId)
                     .ToListAsync();
+
+                // ⭐ Lấy số review user đã đăng
+                int reviewCount = await _context.Reviews
+                    .Where(r => r.UserId == user.Id)
+                    .CountAsync();
+
+                // ✅ Nếu user có review → dùng Collaborative Filtering
+                if (reviewCount >= 3)
+                {
+                    recommendations = await _cf.GetRecommendationsAsync(user.Id, 5);
+                }
+                else
+                {
+                    // ✅ Nếu user mới → dùng AI
+                    recommendations = await _aiRecommend
+                        .GetRecommendedAsync(user.Id, 5);
+                }
             }
 
+            ViewBag.Recommendations = recommendations;
             ViewBag.FavoriteIds = favoriteIds;
+
             return View(restaurants.Select(x => x.Restaurant).ToList());
         }
 
@@ -178,6 +215,7 @@ namespace DoAnChuyenNganh.Controllers
 
             _context.SentimentAnalysisLogs.Add(log);
             await _context.SaveChangesAsync();
+            await _aiRecommend.GenerateForUserAsync(user.Id);
 
             return RedirectToAction("Detail", new { id = restaurantId });
         }

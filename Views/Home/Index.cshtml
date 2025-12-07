@@ -34,7 +34,6 @@
             </div>
         </div>
     </div>
-
     <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
         <span class="carousel-control-prev-icon"></span>
     </button>
@@ -95,7 +94,89 @@
             <i class="bi bi-funnel"></i> Lọc
         </button>
     </form>
+    @if (ViewBag.Recommendations != null && ViewBag.Recommendations.Count > 0)
+    {
+        <h3 class="mt-4">🔥 Gợi ý dành riêng cho bạn</h3>
 
+        <div class="row">
+
+            @foreach (var r in ViewBag.Recommendations)
+            {
+                <div class="col-lg-4 col-md-6 mb-4">
+
+                    <div class="card border-0 shadow-lg rounded-4 h-100 hover-card">
+
+                        <!-- Carousel hình -->
+                        @{
+                            var imgs = r.ImageUrl?
+                            .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                            ?? new string[] { "/images/no-image.png" };
+                            int i = 0;
+                        }
+
+                        <div id="rec-carousel-@r.Id" class="carousel slide rounded-top-4" data-bs-ride="carousel">
+
+                            <div class="carousel-inner">
+
+                                @foreach (var img in imgs)
+                                {
+                                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                                        <img src="@img" class="d-block w-100" style="height:180px;object-fit:cover;">
+                                    </div>
+                                    i++;
+                                }
+                            </div>
+                            <button class="carousel-control-prev" data-bs-target="#rec-carousel-@r.Id" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" data-bs-target="#rec-carousel-@r.Id" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                        </div>
+
+
+                        <div class="card-body">
+
+                            <h5>@r.Name</h5>
+                            <!-- Rating -->
+                            @{
+                                var reviews = r.Reviews as IEnumerable<DoAnChuyenNganh.Models.Review>;
+                                var avg = (reviews != null && reviews.Any())
+                                ? reviews.Average(x => x.Rating)
+                                : 0;
+                            }
+
+                            <div class="mb-2">
+
+                                @for (int star = 1; star <= 5; star++)
+                                {
+                                    if (star <= avg)
+                                    {
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                    }
+                                    else if (star - avg < 1)
+                                    {
+                                        <i class="bi bi-star-half text-warning"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-star text-warning"></i>
+                                    }
+                                }
+
+                                <span class="text-muted">(@avg.ToString("0.0"))</span>
+                            </div>
+                            <p class="text-muted">@r.City</p>
+
+                            <a class="btn btn-primary w-100"
+                               href="/Home/Detail/@r.Id">Xem chi tiết</a>
+                        </div>
+
+                    </div>
+                </div>
+            }
+        </div>
+    }
     <!-- Danh sách nhà hàng -->
     <div class="row">
         @foreach (var r in Model)
