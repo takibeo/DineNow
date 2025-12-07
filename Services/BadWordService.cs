@@ -20,8 +20,7 @@ public class BadWordService
             "https://api-inference.huggingface.co/models/unitary/toxic-bert"
         );
 
-        req.Headers.Authorization =
-            new AuthenticationHeaderValue("Bearer", _api);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _api);
 
         req.Content = new StringContent(
             JsonSerializer.Serialize(new { inputs = text }),
@@ -32,12 +31,40 @@ public class BadWordService
         var resp = await _http.SendAsync(req);
         var json = await resp.Content.ReadAsStringAsync();
 
-        var arr = JsonDocument.Parse(json).RootElement;
-
-        foreach (var item in arr.EnumerateArray())
+        // Nếu trả về HTML hoặc rỗng → KHÔNG PHẢI JSON → tránh crash
+        if (string.IsNullOrWhiteSpace(json) || json.TrimStart().StartsWith("<"))
         {
-            var label = item.GetProperty("label").GetString();
-            var score = item.GetProperty("score").GetDouble();
+            Console.WriteLine("⚠ HF trả về HTML / lỗi:");
+            Console.WriteLine(json);
+            return false; // không block tin nhắn, nhưng không crash
+        }
+
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(json);
+        }
+        catch
+        {
+            Console.WriteLine("⚠ JSON parse error:");
+            Console.WriteLine(json);
+            return false;
+        }
+
+        var arr = doc.RootElement;
+
+        // trường hợp model đang load: trả về JSON nhưng không có dữ liệu dự đoán
+        if (!arr.ValueKind.Equals(JsonValueKind.Array))
+        {
+            Console.WriteLine("⚠ Unexpected JSON format:");
+            Console.WriteLine(json);
+            return false;
+        }
+
+        foreach (var item in arr[0].EnumerateArray())
+        {
+            string label = item.GetProperty("label").GetString();
+            double score = item.GetProperty("score").GetDouble();
 
             if (label == "toxic" && score > 0.55)
                 return true;
@@ -45,4 +72,5 @@ public class BadWordService
 
         return false;
     }
+
 }

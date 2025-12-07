@@ -1,0 +1,63 @@
+﻿@model IEnumerable<ChatRoom>
+
+@{
+    ViewData["Title"] = "Danh sách phòng chat";
+    var names = ViewBag.UserNames as Dictionary<string, string>;
+    var newMessages = ViewBag.NewMessages as Dictionary<int, bool>;
+}
+
+<h2>Danh sách phòng chat</h2>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Room ID</th>
+            <th>Khách hàng</th>
+            <th>Thông báo</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model)
+        {
+            string name = names.ContainsKey(r.CustomerId) ? names[r.CustomerId] : r.CustomerId;
+            bool hasNew = newMessages.ContainsKey(r.Id) && newMessages[r.Id];
+            <tr>
+                <td>@r.Id</td>
+                <td>@name</td>
+                <td>
+                    @if (hasNew)
+                    {
+                        <span class="badge bg-success">Tin nhắn mới!</span>
+                    }
+                </td>
+                <td>
+                    <a class="btn btn-primary" href="/Chat/Admin/@r.Id">Vào chat</a>
+                    <button class="btn btn-danger delete-room" data-room="@r.Id">Xóa</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    $(document).on("click", ".delete-room", function() {
+        let room = $(this).data("room");
+        Swal.fire({
+            title: "Xóa phòng chat?",
+            text: "Tin nhắn Admin sẽ bị xóa, nhưng Customer vẫn xem được.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Xóa",
+            cancelButtonText: "Hủy"
+        }).then(r => {
+            if(r.isConfirmed){
+                window.location.href = "/Chat/DeleteChat/" + room;
+            }
+        });
+    });
+</script>

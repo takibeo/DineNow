@@ -28,6 +28,10 @@ namespace DoAnChuyenNganh.Data
 
         public DbSet<StaffBilling> StaffBillings { get; set; }
 
+        public DbSet<Message> Messages { get; set; }
+
+        public DbSet<ChatRoom> ChatRooms { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

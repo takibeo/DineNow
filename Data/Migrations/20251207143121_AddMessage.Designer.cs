@@ -4,6 +4,7 @@ using DoAnChuyenNganh.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAnChuyenNganh.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    partial class AppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20251207143121_AddMessage")]
+    partial class AddMessage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -49,41 +52,6 @@ namespace DoAnChuyenNganh.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("AIRecommendations");
-                });
-
-            modelBuilder.Entity("DoAnChuyenNganh.Models.ChatRoom", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CustomerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("DeletedByAdmin")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("DeletedByCustomer")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastDeletedByAdmin")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LastDeletedByCustomer")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LastReadByAdmin")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ChatRooms");
                 });
 
             modelBuilder.Entity("DoAnChuyenNganh.Models.FavoriteRestaurant", b =>
@@ -592,16 +560,15 @@ namespace DoAnChuyenNganh.Migrations
                     b.Property<bool>("IsBlocked")
                         .HasColumnType("bit");
 
-                    b.Property<int>("RoomId")
-                        .HasColumnType("int");
+                    b.Property<string>("ReceiverId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserId")
+                    b.Property<string>("SenderId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("RoomId");
 
                     b.ToTable("Messages");
                 });
@@ -898,17 +865,6 @@ namespace DoAnChuyenNganh.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Message", b =>
-                {
-                    b.HasOne("DoAnChuyenNganh.Models.ChatRoom", "Room")
-                        .WithMany("Messages")
-                        .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Room");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -958,11 +914,6 @@ namespace DoAnChuyenNganh.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("DoAnChuyenNganh.Models.ChatRoom", b =>
-                {
-                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("DoAnChuyenNganh.Models.Reservation", b =>

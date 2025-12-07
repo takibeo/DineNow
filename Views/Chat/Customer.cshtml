@@ -1,0 +1,119 @@
+﻿@model ChatRoom
+
+@{
+    ViewData["Title"] = "Chat với Admin";
+}
+
+<h3>Chat với Admin</h3>
+
+<button id="deleteChat" class="btn btn-danger mb-3">Xóa tin nhắn</button>
+
+<div class="chatbox" style="border:1px solid #ddd;height:450px;overflow-y:auto;padding:15px;background:white;"></div>
+
+<input type="text" id="msg" class="form-control mt-2" placeholder="Nhập tin nhắn..." />
+<button id="send" class="btn btn-primary mt-2">Gửi</button>
+
+<style>
+    .msg {
+        padding: 10px 13px;
+        border-radius: 18px;
+        margin-bottom: 10px;
+        max-width: 65%;
+        display: inline-block;
+        clear: both;
+    }
+
+    .customer {
+        background: #0d6efd;
+        color: white;
+        float: right;
+        text-align: right;
+    }
+
+    .admin {
+        background: #f1f1f1;
+        color: black;
+        float: left;
+    }
+
+    .blocked {
+        background: #ffdddd !important;
+        color: #b30000 !important;
+        border: 1px solid red;
+    }
+
+    .sender {
+        font-size: 12px;
+        opacity: 0.8;
+        margin-bottom: 4px;
+    }
+
+    .time {
+        font-size: 11px;
+        opacity: 0.6;
+        margin-top: 3px;
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    let room = @Model.Id;
+
+    function render(data) {
+        const box = $(".chatbox");
+        let isAtBottom = box.scrollTop() + box.innerHeight() >= box[0].scrollHeight - 20;
+        box.html("");
+
+        data.forEach(m => {
+            const who = m.userId === "@Model.CustomerId" ? "customer" : "admin";
+            const blocked = m.isBlocked ? "blocked" : "";
+
+            const html = $(`<div class="msg ${who} ${blocked}">
+                <div class="sender">${m.senderName ?? m.userId}</div>
+                <div class="text"></div>
+                <div class="time">${new Date(m.createdAt).toLocaleString()}</div>
+            </div>`);
+            html.find(".text").text(m.content);
+            box.append(html);
+            box.append("<div style='clear: both'></div>");
+        });
+
+        if (isAtBottom) box.scrollTop(box[0].scrollHeight);
+    }
+
+    function load() {
+        $.get("/Chat/Load", { roomId: room }, render);
+    }
+
+    $("#send").click(function() {
+        let text = $("#msg").val().trim();
+        if (!text) return;
+
+        $.post("/Chat/Send", { roomId: room, msg: text }, function(res){
+            if(!res.ok) alert(res.msg);
+            $("#msg").val("");
+            load();
+        });
+    });
+
+    $("#deleteChat").click(function() {
+        Swal.fire({
+            title: "Bạn có chắc muốn xóa tin nhắn?",
+            text: "Tin nhắn Customer sẽ bị xóa, Admin vẫn xem được.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Xóa",
+            cancelButtonText: "Hủy"
+        }).then(result => {
+            if(result.isConfirmed){
+                window.location.href = "/Chat/DeleteChat/" + room;
+            }
+        });
+    });
+
+    setInterval(load, 1000);
+    load();
+</script>

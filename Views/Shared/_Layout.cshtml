@@ -477,9 +477,8 @@
                                     <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">⚙️ Quản lý tài khoản</a></li>
                                     <li><a class="dropdown-item" asp-controller="Admin" asp-action="ManageRestaurants">🏪 Danh sách nhà hàng</a></li>
                                     <li><a class="dropdown-item" asp-controller="Admin" asp-action="ManagePayment">💵 Danh sách thanh toán</a></li>
-
+                                    <li><a class="dropdown-item" asp-controller="Chat" asp-action="Rooms">💬 Danh sách phòng chờ tin nhán</a></li>
                                 }
-
                                 <li><hr class="dropdown-divider" /></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="ActivityHistory">📜 Lịch sử hoạt động</a></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="EditProfile">✏️ Chỉnh sửa thông tin</a></li>
@@ -505,6 +504,93 @@
             </div>
         </div>
     </nav>
+    @if (SignInManager.IsSignedIn(User) && !isAdmin && !isStaff)
+    {
+        <!-- Chat Bubble góc phải dưới -->
+        <div id="chatBubble" style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: #0d6efd;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        z-index: 9999;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        font-size: 24px;
+    ">
+            💬
+            <span id="chatBadge" style="
+            display:none;
+            position:absolute;
+            top:-4px;
+            right:-4px;
+            background:red;
+            color:white;
+            font-size:0.7rem;
+            width:18px;
+            height:18px;
+            border-radius:50%;
+            text-align:center;
+            line-height:18px;
+            font-weight:bold;
+        ">!</span>
+        </div>
+
+        <!-- Chat Box -->
+        <div id="chatBox" style="
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 300px;
+            max-height: 400px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 9999;
+            overflow: hidden;
+        ">
+            <div id="chatHeader" style="
+                background: #0d6efd;
+                color: white;
+                padding: 10px;
+                font-weight: bold;
+                cursor: move;
+                position: relative;
+            ">
+                Chat với Admin
+                <button id="deleteChat" style="
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #dc3545; /* đỏ Bootstrap */
+            border: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 5px;
+        ">
+                    🗑 Xóa
+                </button>
+            </div>
+
+            <div id="chatMessages" style="flex:1; padding:10px; overflow-y:auto; background:#f8f9fa;"></div>
+
+            <div style="display:flex; padding:5px; border-top:1px solid #ddd;">
+                <input id="chatInput" type="text" style="flex:1; padding:5px;" placeholder="Nhập tin nhắn..." />
+                <button id="chatSend" style="margin-left:5px; background:#0d6efd; color:white; border:none; padding:5px 10px;">Gửi</button>
+            </div>
+        </div>
+    }
     <!-- === MAIN CONTENT === -->
     <main role="main">
         @RenderBody()
@@ -567,7 +653,67 @@
             }
         });
     </script>
+    @if (SignInManager.IsSignedIn(User) && !isAdmin && !isStaff)
+    {
+        <script>
+                        let roomId = @(_context.ChatRooms.FirstOrDefault(r => r.CustomerId == currentUser.Id)?.Id ?? 0);
 
+            // Bật/tắt chat box
+            $("#chatBubble").click(function() {
+                $("#chatBox").toggle();
+                loadMessages();
+                // Khi mở chat, ẩn badge
+                $("#chatBadge").hide();
+            });
+
+            // Load tin nhắn
+            function loadMessages() {
+                if(roomId === 0) return;
+                $.get("/Chat/Load", { roomId: roomId }, function(data){
+                    const box = $("#chatMessages");
+                    box.html("");
+
+                    data.forEach(m => {
+                        const who = m.userId === "@currentUser.Id" ? "customer" : "admin";
+                        const msgDiv = $(`<div style="
+                            padding:8px 12px;
+                            border-radius:15px;
+                            margin-bottom:5px;
+                            max-width:75%;
+                            ${who==='customer'?'background:#0d6efd;color:white;margin-left:auto;':'background:#e9ecef;color:black;margin-right:auto;'}
+                        ">${m.content}</div>`);
+                        box.append(msgDiv);
+                    });
+
+                    box.scrollTop(box[0].scrollHeight);
+
+                    // Nếu bubble đang ẩn và có tin nhắn mới từ Admin thì hiện badge
+                    if($("#chatBox").is(":hidden") && data.some(m => m.userId !== "@currentUser.Id")) {
+                        $("#chatBadge").show();
+                    }
+                });
+            }
+
+            // Gửi tin nhắn
+            $("#chatSend").click(function(){
+                let text = $("#chatInput").val().trim();
+                if(!text) return;
+                $.post("/Chat/Send", { roomId: roomId, msg: text }, function(res){
+                    if(!res.ok) alert(res.msg);
+                    $("#chatInput").val("");
+                    loadMessages();
+                });
+            });
+                        $("#deleteChat").click(function(){
+                if(roomId === 0) return;
+                if(confirm("Bạn có chắc muốn xóa toàn bộ tin nhắn phía bạn?")) {
+                    window.location.href = "/Chat/DeleteChat/" + roomId;
+                }
+            });
+            // Auto refresh mỗi giây
+            setInterval(loadMessages, 1000);
+        </script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
