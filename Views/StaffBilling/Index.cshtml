@@ -1,0 +1,109 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.StaffBilling>
+
+@{
+    ViewData["Title"] = "Danh sách hóa đơn hàng tháng";
+}
+
+<div class="container mt-4">
+    <h2>Danh sách hóa đơn hàng tháng</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+    @if (TempData["Info"] != null)
+    {
+        <div class="alert alert-info">@TempData["Info"]</div>
+    }
+
+    <table id="billingTable" class="table table-bordered table-hover mt-3">
+        <thead class="table-light">
+            <tr>
+                <th>Tháng</th>
+                <th>Số nhà hàng</th>
+                <th>Phí nhà hàng</th>
+                <th>Lượt đặt bàn</th>
+                <th>Phí đặt bàn</th>
+                <th>Tổng phí</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var bill in Model)
+            {
+                <tr>
+                    <td>@bill.Month.ToString("MM/yyyy")</td>
+                    <td>@bill.ManagedRestaurantCount</td>
+                    <td>@bill.RestaurantFee.ToString("N0") đ</td>
+                    <td>@bill.ReservationCount</td>
+                    <td>@bill.ReservationFee.ToString("N0") đ</td>
+                    <td>@bill.TotalFee.ToString("N0") đ</td>
+                    <td>
+                        @if (bill.IsPaid)
+                        {
+                            <span class="badge bg-success">Đã thanh toán</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">Chưa thanh toán</span>
+                        }
+                    </td>
+                    <td>
+                        @if (!bill.IsPaid)
+                        {
+                            <a class="btn btn-primary btn-sm" href="@Url.Action("Pay", "StaffBilling", new { id = bill.Id })">Thanh toán</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <!-- DataTables Bootstrap5 JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#billingTable').DataTable({
+                responsive: true,
+                pageLength: 10,
+                order: [[0, "desc"]],
+                dom: 'Bfrtip',
+                buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+                language: {
+                    search: "Tìm kiếm:",
+                    lengthMenu: "Hiển thị _MENU_ bản ghi",
+                    info: "Hiển thị _START_ đến _END_ của _TOTAL_ bản ghi",
+                    paginate: {
+                        first: "Đầu",
+                        last: "Cuối",
+                        next: "Tiếp",
+                        previous: "Trước"
+                    },
+                    emptyTable: "Không có dữ liệu"
+                }
+            });
+        });
+    </script>
+}
+

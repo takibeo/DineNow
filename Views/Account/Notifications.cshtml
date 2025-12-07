@@ -126,20 +126,20 @@
 
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<!-- AOS script -->
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
 <script>
+    // Khởi tạo AOS
     AOS.init();
-</script>
 
-<script>
-    document.getElementById("markAllReadBtn").addEventListener("click", function () {
+    const markAllReadBtn = document.getElementById("markAllReadBtn");
+    const deleteAllBtn = document.getElementById("deleteAllBtn");
 
+    // 🔹 Đánh dấu tất cả thông báo là đã đọc
+    markAllReadBtn.addEventListener("click", function () {
         axios.post('/Account/MarkAllNotificationsRead')
-            .then(function (response) {
+            .then(response => {
                 if (response.data.success) {
-
                     Swal.fire({
                         icon: 'success',
                         title: 'Đã cập nhật!',
@@ -148,26 +148,44 @@
                         showConfirmButton: false
                     });
 
-                    // 🔥 Cập nhật từng thẻ thông báo
+                    // Cập nhật tất cả thẻ thông báo
                     document.querySelectorAll(".notification-card").forEach(card => {
-
-                        let badge = card.querySelector(".notification-badge");
+                        // Xóa badge "Mới"
+                        const badge = card.querySelector(".notification-badge");
                         if (badge) badge.remove();
 
-                        card.classList.add("read");
-                        card.classList.add("animate__animated", "animate__fadeIn");
+                        // Thêm class read để style xám nhẹ
+                        card.classList.add("read", "animate__animated", "animate__fadeIn");
                     });
 
-                    // 🔥 XÓA badge đỏ trên icon chuông
-                    let bellBadge = document.querySelector(".notification-badge");
+                    // Xóa badge đỏ trên icon chuông nếu có
+                    const bellBadge = document.querySelector("#bellBadge");
                     if (bellBadge) bellBadge.remove();
+
+                    // Cập nhật số lượng thông báo mới
+                    const countText = document.querySelector("span.text-muted");
+                    if (countText) countText.textContent = `Bạn có 0 thông báo mới`;
                 }
             })
-            .catch(function () {
+            .catch(() => {
                 Swal.fire('Lỗi', 'Không thể cập nhật thông báo!', 'error');
             });
     });
-    document.getElementById("deleteAllBtn").addEventListener("click", function () {
+
+    // 🔹 Xóa tất cả thông báo
+        deleteAllBtn.addEventListener("click", function () {
+        const notifications = document.querySelectorAll(".notification-card");
+
+        if (notifications.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Chưa có thông báo',
+                text: 'Bạn chưa có thông báo nào để xóa.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            return; // Không làm gì nữa
+        }
 
         Swal.fire({
             title: "Bạn chắc chắn?",
@@ -177,11 +195,10 @@
             confirmButtonText: "Xóa",
             cancelButtonText: "Hủy",
             confirmButtonColor: "#d33"
-        }).then((result) => {
-
+        }).then(result => {
             if (result.isConfirmed) {
                 axios.post('/Account/DeleteAllNotifications')
-                    .then(function (response) {
+                    .then(response => {
                         if (response.data.success) {
                             Swal.fire({
                                 icon: 'success',
@@ -191,14 +208,17 @@
                                 showConfirmButton: false
                             });
 
-                            // 🔥 Xóa tất cả thẻ notification-card khỏi DOM
-                            document.querySelectorAll(".notification-card").forEach(card => card.remove());
+                            // Xóa tất cả thẻ thông báo
+                            notifications.forEach(card => card.remove());
 
-                            // 🔥 Nếu muốn, cũng có thể cập nhật số lượng thông báo
+                            // Xóa tất cả badge đỏ
+                            document.querySelectorAll(".notification-badge").forEach(badge => badge.remove());
+
+                            // Cập nhật số lượng thông báo
                             const countText = document.querySelector("span.text-muted");
                             if (countText) countText.textContent = "Bạn có 0 thông báo";
 
-                            // 🔥 Thêm box “Không có thông báo” nếu muốn
+                            // Thêm box "Không có thông báo"
                             const listGroup = document.querySelector(".list-group");
                             if (listGroup) {
                                 const emptyBox = document.createElement("div");
@@ -211,10 +231,11 @@
                             }
                         }
                     })
-                    .catch(function () {
+                    .catch(() => {
                         Swal.fire('Lỗi', 'Không thể xóa thông báo!', 'error');
                     });
             }
         });
     });
 </script>
+

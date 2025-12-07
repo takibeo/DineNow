@@ -1,6 +1,7 @@
 ﻿using DoAnChuyenNganh.Data;
 using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.Models.ViewModels;
+using DoAnChuyenNganh.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,12 +15,14 @@ namespace DoAnChuyenNganh.Controllers
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly AppDBContext _context;
+        private readonly BillingService _billingService;
 
-        public AdminController(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, AppDBContext context)
+        public AdminController(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, AppDBContext context, BillingService billingService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _context = context;
+            _billingService = billingService;
         }
 
         private async Task SaveNotification(string userId, string message)
@@ -47,12 +50,16 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> Index()
         {
             var users = await _userManager.Users.ToListAsync();
+
+            // Chỉ cần User + Role (2 phần tử) để khớp với View
             var userRoles = new List<(User user, string role)>();
 
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                userRoles.Add((user, roles.FirstOrDefault() ?? "None"));
+                string role = roles.FirstOrDefault() ?? "None";
+
+                userRoles.Add((user, role));
             }
 
             return View(userRoles);
@@ -102,7 +109,6 @@ namespace DoAnChuyenNganh.Controllers
             return View(model);
         }
 
-        // 🔒 Khóa hoặc mở khóa tài khoản
         // 🔒 Khóa hoặc mở khóa tài khoản
         [HttpPost]
         public async Task<IActionResult> ToggleLock(string id)
@@ -183,9 +189,18 @@ namespace DoAnChuyenNganh.Controllers
                     r.Name,
                     r.IsApproved,
                     Staffs = _context.StaffRestaurants
-                        .Where(sr => sr.RestaurantId == r.Id)
-                        .Select(sr => sr.User.FullName)
-                        .ToList()
+                                .Where(sr => sr.RestaurantId == r.Id)
+                                .Select(sr => new
+                                {
+                                    sr.User.Id,
+                                    sr.User.FullName,
+                                    LastBillMonth = _context.StaffBillings
+                                        .Where(b => b.UserId == sr.User.Id)
+                                        .OrderByDescending(b => b.Month)
+                                        .Select(b => b.Month)
+                                        .FirstOrDefault()
+                                })
+                                .ToList()
                 })
                 .ToListAsync();
 
@@ -259,6 +274,129 @@ namespace DoAnChuyenNganh.Controllers
 
             TempData["Success"] = $"Đã phê duyệt nhà hàng: {restaurant.Name}";
             return RedirectToAction(nameof(ManageRestaurants));
+        }
+
+        // ✅ Tạo hóa đơn hàng tháng cho 1 Staff (tự động tính tổng tất cả nhà hàng họ quản lý)
+        private async Task<StaffBilling> GenerateMonthlyBill(string staffId, int? year = null, int? month = null)
+        {
+            if (string.IsNullOrEmpty(staffId)) return null;
+
+            var staff = await _userManager.FindByIdAsync(staffId);
+            if (staff == null) return null;
+
+            int y = year ?? DateTime.Now.Year;
+            int m = month ?? DateTime.Now.Month;
+
+            // Kiểm tra bill đã tồn tại
+            var existingBill = await _context.StaffBillings
+                .FirstOrDefaultAsync(b => b.UserId == staffId && b.Month.Year == y && b.Month.Month == m);
+
+            if (existingBill != null)
+                return existingBill; // Bill đã có → trả về luôn
+
+            var bill = await _billingService.CalculateMonthlyFee(staffId, y, m);
+
+            if (bill == null || bill.TotalFee <= 0)
+                return null;
+
+            string notiMessage = $"Hóa đơn thanh toán tháng {m}/{y} đã được tạo. Tổng phí: {bill.TotalFee:N0} đ. Vui lòng thanh toán trong 5 ngày.";
+            await SaveNotification(staffId, notiMessage);
+
+            return bill;
+        }
+        // ✅ Nút tạo bill cho Staff quản lý (gọi GenerateMonthlyBill)
+        [HttpPost]
+        public async Task<IActionResult> CreateBillForStaff(string staffId)
+        {
+            if (string.IsNullOrEmpty(staffId))
+                return BadRequest(new { success = false, message = "Staff không hợp lệ." });
+
+            var staff = await _userManager.FindByIdAsync(staffId);
+            if (staff == null)
+                return NotFound(new { success = false, message = "Staff không tồn tại." });
+
+            var bill = await GenerateMonthlyBill(staffId);
+
+            if (bill == null)
+                return BadRequest(new { success = false, message = "Bill chưa được tạo (có thể đã tồn tại hoặc Staff chưa quản lý nhà hàng nào)." });
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Hóa đơn đã được gửi đến Staff {staff.FullName}.",
+                billId = bill.Id
+            });
+        }
+
+        // GET: Admin/ManagePayment
+        public async Task<IActionResult> ManagePayment()
+        {
+            var staffUsers = await _userManager.GetUsersInRoleAsync("Staff");
+
+            var staffBillings = new List<ManagePaymentViewModel>();
+            var now = DateTime.Now;
+
+            foreach (var staff in staffUsers)
+            {
+                var lastBill = await _context.StaffBillings
+                    .Where(b => b.UserId == staff.Id)
+                    .OrderByDescending(b => b.Month)
+                    .FirstOrDefaultAsync();
+
+                var hasRestaurants = await _context.StaffRestaurants
+                    .AnyAsync(sr => sr.UserId == staff.Id);
+
+                staffBillings.Add(new ManagePaymentViewModel
+                {
+                    StaffId = staff.Id,
+                    StaffName = staff.FullName,
+                    LastBillMonth = lastBill?.Month,
+                    IsPaid = lastBill?.IsPaid,
+                    HasManagedRestaurants = hasRestaurants
+                });
+            }
+
+            return View(staffBillings);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AcceptPayment(string staffId)
+        {
+            if (string.IsNullOrEmpty(staffId))
+                return Json(new { success = false, message = "Staff không hợp lệ." });
+
+            var lastBill = await _context.StaffBillings
+                .Where(b => b.UserId == staffId)
+                .OrderByDescending(b => b.Month)
+                .FirstOrDefaultAsync();
+
+            if (lastBill == null)
+                return Json(new { success = false, message = "Không tìm thấy hóa đơn cho Staff này." });
+
+            lastBill.IsPaid = true; // đánh dấu Admin đã chấp nhận
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Thanh toán đã được chấp nhận." });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RejectPayment(string staffId)
+        {
+            if (string.IsNullOrEmpty(staffId))
+                return Json(new { success = false, message = "Staff không hợp lệ." });
+
+            var lastBill = await _context.StaffBillings
+                .Where(b => b.UserId == staffId)
+                .OrderByDescending(b => b.Month)
+                .FirstOrDefaultAsync();
+
+            if (lastBill == null)
+                return Json(new { success = false, message = "Không tìm thấy hóa đơn cho Staff này." });
+
+            _context.StaffBillings.Remove(lastBill); // xóa bản ghi để tạo lại
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Thanh toán đã bị từ chối." });
         }
     }
 }

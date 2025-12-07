@@ -1,0 +1,229 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.ViewModels.ManagePaymentViewModel>
+
+@{
+    ViewData["Title"] = "Quản lý thanh toán Staff";
+}
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css" />
+
+<h2 class="mb-4">Quản lý thanh toán Staff</h2>
+
+<table id="managePaymentTable" class="table table-bordered table-striped align-middle text-center">
+    <thead class="table-dark">
+        <tr>
+            <th>#</th>
+            <th>Staff</th>
+            <th>Lần tạo bill gần nhất</th>
+            <th>Trạng thái thanh toán</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Any())
+        {
+            int stt = 0;
+            foreach (var staff in Model)
+            {
+                var staffId = staff.StaffId;
+                var btnId = $"btn-create-{staffId}";
+                var approveId = $"approve-buttons-{staffId}";
+                var statusId = $"status-{staffId}";
+                <tr id="row-@staffId">
+                    <td>@(++stt)</td>
+                    <td>@staff.StaffName</td>
+                    <td>@(staff.LastBillMonth?.ToString("MM/yyyy") ?? "Chưa có")</td>
+                    <td>
+                        @{
+                            string statusText = staff.IsPaid == true ? "Đã thanh toán" : "Chưa thanh toán";
+                            string badgeClass = staff.IsPaid == true ? "bg-success" : "bg-warning text-dark";
+                        }
+                        <span class="badge @badgeClass" id="@statusId">@statusText</span>
+                    </td>
+                    <td>
+                        @* Kiểm tra điều kiện tạo bill *@
+                        @{
+                            var now = DateTime.Now;
+                            bool canCreateBill = staff.HasManagedRestaurants
+                            && (!staff.LastBillMonth.HasValue
+                            || staff.LastBillMonth.Value.Month != now.Month
+                            || staff.LastBillMonth.Value.Year != now.Year
+                            || staff.IsPaid == false);
+                        }
+                        <button class="btn btn-primary btn-sm" id="@btnId"
+                                onclick="createBill('@staffId', '@staff.StaffName')"
+                                @(canCreateBill ? "" : "disabled title='Không có nhà hàng hoặc bill tháng này đã thanh toán'")>
+                            <i class="bi bi-receipt"></i> Tạo hóa đơn
+                        </button>
+
+                        <span id="@approveId" style="display:@(staff.LastBillMonth.HasValue ? "inline-block" : "none")">
+                            <button class="btn btn-success btn-sm ms-1"
+                                    onclick="acceptPayment('@staffId', '@staff.StaffName')">
+                                <i class="bi bi-check2-circle"></i> Chấp nhận
+                            </button>
+                            <button class="btn btn-danger btn-sm ms-1"
+                                    onclick="rejectPayment('@staffId', '@staff.StaffName')">
+                                <i class="bi bi-x-circle"></i> Từ chối
+                            </button>
+                        </span>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="5" class="text-muted fst-italic">Không có Staff</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <!-- jQuery + DataTables JS -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function () {
+            $('#managePaymentTable').DataTable({
+                responsive: true,
+                pageLength: 10,
+                order: [[2, "desc"]], // Sắp xếp theo cột lần tạo bill gần nhất
+                dom: 'Bfrtip',
+                buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+                language: {
+                    search: "Tìm kiếm:",
+                    lengthMenu: "Hiển thị _MENU_ bản ghi",
+                    info: "Hiển thị _START_ đến _END_ của _TOTAL_ bản ghi",
+                    paginate: {
+                        first: "Đầu",
+                        last: "Cuối",
+                        next: "Tiếp",
+                        previous: "Trước"
+                    },
+                    emptyTable: "Không có dữ liệu"
+                }
+            });
+        });
+         // Tạo hóa đơn
+        function createBill(staffId, staffName) {
+            const btn = document.getElementById(`btn-create-${staffId}`);
+            if (btn.disabled) return;
+            btn.disabled = true;
+
+            fetch(`/Admin/CreateBillForStaff?staffId=${staffId}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Bill đã tạo!',
+                            text: data.message,
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+
+                        const status = document.getElementById(`status-${staffId}`);
+                        status.textContent = "Chưa thanh toán";
+                        status.className = "badge bg-warning text-dark";
+
+                        // Hiện nút Chấp nhận / Từ chối luôn
+                        document.getElementById(`approve-buttons-${staffId}`).style.display = "inline-block";
+                    } else {
+                        Swal.fire('Lỗi!', data.message, 'error');
+                        btn.disabled = false;
+                    }
+                });
+        }
+
+        // Chấp nhận thanh toán
+        function acceptPayment(staffId, staffName) {
+            Swal.fire({
+                title: "Chấp nhận thanh toán?",
+                text: `Xác nhận Staff "${staffName}" đã thanh toán.`,
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: "#198754",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Chấp nhận",
+                cancelButtonText: "Hủy"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Admin/AcceptPayment?staffId=${staffId}`, { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                // disable nút tạo bill
+                                document.getElementById(`btn-create-${staffId}`).disabled = true;
+
+                                const status = document.getElementById(`status-${staffId}`);
+                                status.textContent = "Đã thanh toán";
+                                status.className = "badge bg-success";
+
+                                // Ẩn nút approve/reject
+                                document.getElementById(`approve-buttons-${staffId}`).style.display = "none";
+
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Đã chấp nhận!",
+                                    text: data.message,
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                });
+                            } else {
+                                Swal.fire("Lỗi!", data.message, "error");
+                            }
+                        });
+                }
+            });
+        }
+
+        // Từ chối thanh toán
+        function rejectPayment(staffId, staffName) {
+            Swal.fire({
+                title: "Từ chối thanh toán?",
+                text: `Xác nhận Staff "${staffName}" chưa thanh toán hoặc bị từ chối.`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Từ chối",
+                cancelButtonText: "Hủy"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/Admin/RejectPayment?staffId=${staffId}`, { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Enable nút tạo bill lại
+                                document.getElementById(`btn-create-${staffId}`).disabled = false;
+
+                                const status = document.getElementById(`status-${staffId}`);
+                                status.textContent = "Chưa thanh toán";
+                                status.className = "badge bg-warning text-dark";
+
+                                // Ẩn nút approve/reject
+                                document.getElementById(`approve-buttons-${staffId}`).style.display = "none";
+
+                                Swal.fire({
+                                    icon: "success",
+                                    title: "Đã từ chối!",
+                                    text: data.message,
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                });
+                            } else {
+                                Swal.fire("Lỗi!", data.message, "error");
+                            }
+                        });
+                }
+            });
+        }
+
+    </script>
+}

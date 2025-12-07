@@ -49,6 +49,15 @@
         color: #333;
         text-shadow: 1px 1px 2px #ddd;
     }
+
+    button[disabled] {
+        opacity: 1; /* để màu rõ hơn */
+        cursor: not-allowed;
+        background-color: #6c757d !important; /* màu xám */
+        border-color: #6c757d !important;
+        color: #fff !important;
+    }
+
 </style>
 
 <div class="container mt-4 fade-in">
@@ -81,7 +90,7 @@
                                 <ul class="list-unstyled mb-0">
                                     @foreach (var staff in item.Staffs)
                                     {
-                                        <li>👤 @staff</li>
+                                        <li>👤 @staff.FullName</li>
                                     }
                                 </ul>
                             }

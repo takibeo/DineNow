@@ -470,11 +470,14 @@
                                 {
                                     <li><a class="dropdown-item" asp-controller="Reservation" asp-action="Manage">🧾 Quản lý đặt bàn</a></li>
                                     <li><a class="dropdown-item" asp-controller="Restaurant" asp-action="Index">🏪 Nhà hàng của bạn</a></li>
+                                    <li><a class="dropdown-item" asp-controller="StaffBilling" asp-action="Index">💵 Hóa đơn và thanh toán</a></li>
                                 }
                                 @if (isAdmin)
                                 {
                                     <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">⚙️ Quản lý tài khoản</a></li>
                                     <li><a class="dropdown-item" asp-controller="Admin" asp-action="ManageRestaurants">🏪 Danh sách nhà hàng</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="ManagePayment">💵 Danh sách thanh toán</a></li>
+
                                 }
 
                                 <li><hr class="dropdown-divider" /></li>

@@ -26,6 +26,8 @@ namespace DoAnChuyenNganh.Data
 
         public DbSet<ReviewReply> ReviewReplies { get; set; }
 
+        public DbSet<StaffBilling> StaffBillings { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

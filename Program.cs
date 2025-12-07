@@ -44,6 +44,11 @@ using Microsoft.AspNetCore.Identity;
 
     builder.Services.AddScoped<CollaborativeFilteringService>();
 
+    builder.Services.AddScoped<BillingService>();
+
+    builder.Services.AddHttpClient<BadWordService>();
+
+
 // 4️⃣ Thêm Authentication (cookie)
 builder.Services.ConfigureApplicationCookie(options =>
     {
