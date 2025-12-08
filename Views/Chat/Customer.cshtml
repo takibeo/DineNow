@@ -86,12 +86,18 @@
         $.get("/Chat/Load", { roomId: room }, render);
     }
 
-    $("#send").click(function() {
+        $("#send").click(function() {
         let text = $("#msg").val().trim();
         if (!text) return;
 
         $.post("/Chat/Send", { roomId: room, msg: text }, function(res){
-            if(!res.ok) alert(res.msg);
+            if(!res.ok){
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cảnh báo',
+                    text: res.msg
+                });
+            }
             $("#msg").val("");
             load();
         });

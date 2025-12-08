@@ -80,6 +80,9 @@ public class ChatController : Controller
         var me = await _user.GetUserAsync(User);
         if (me == null) return Json(new { ok = false, msg = "Chưa đăng nhập" });
 
+        if (!me.IsActive)
+            return Json(new { ok = false, msg = "Tài khoản của bạn đã bị khóa 1 ngày do vi phạm." });
+
         var room = await _ctx.ChatRooms
             .Include(r => r.Messages)
             .FirstOrDefaultAsync(r => r.Id == roomId);
@@ -88,13 +91,12 @@ public class ChatController : Controller
 
         bool isAdmin = await _user.IsInRoleAsync(me, "Admin");
 
-        // Kiểm tra quyền gửi
         if (!isAdmin && room.CustomerId != me.Id)
             return Json(new { ok = false, msg = "Không có quyền gửi tin" });
 
-        // Lọc từ cấm
+        // Kiểm tra từ cấm
         bool bad = await _filter.IsBadAsync(msg);
-
+        Console.WriteLine($"[BadWordService Test] User: {me.UserName}, Tin nhắn: '{msg}', Bad? {bad}");
         var m = new Message
         {
             RoomId = roomId,
@@ -106,17 +108,30 @@ public class ChatController : Controller
 
         _ctx.Messages.Add(m);
 
-        // Nếu Customer gửi, reset DeletedByAdmin flag để Admin vẫn thấy room
-        if (!isAdmin && room.DeletedByAdmin)
-            room.DeletedByAdmin = false;
+        // Xử lý cảnh báo nếu là Customer
+        if (!isAdmin && bad)
+        {
+            me.WarningCount++; // tăng số cảnh báo
+            _ctx.Users.Update(me);
 
-        // Nếu Admin gửi, reset DeletedByCustomer flag để Customer vẫn thấy room
-        if (isAdmin && room.DeletedByCustomer)
-            room.DeletedByCustomer = false;
+            // Khóa tài khoản nếu quá 5 lần cảnh báo trong 24h
+            if (me.WarningCount >= 5)
+            {
+                me.IsActive = false;
+                me.LockedAt = DateTime.Now; // thêm trường LockedAt để mở lại sau 1 ngày
+            }
+        }
+
+        // Reset Deleted flags
+        if (!isAdmin && room.DeletedByAdmin) room.DeletedByAdmin = false;
+        if (isAdmin && room.DeletedByCustomer) room.DeletedByCustomer = false;
 
         await _ctx.SaveChangesAsync();
 
-        return Json(new { ok = !bad, msg = bad ? "Tin nhắn chứa từ cấm!" : "Đã gửi" });
+        if (bad)
+            return Json(new { ok = false, msg = "Tin nhắn không hợp lệ!" });
+
+        return Json(new { ok = true, msg = "Đã gửi" });
     }
     // ===========================
     // LOAD TIN NHẮN

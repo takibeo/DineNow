@@ -20,10 +20,23 @@ namespace DoAnChuyenNganh.Models
 
         public string? LockedByAdminId { get; set; }
 
+        public int WarningCount { get; set; } = 0;
+        public DateTime? LockedAt { get; set; }
+
         // Relationships
         public ICollection<Reservation>? Reservations { get; set; }
         public ICollection<Review>? Reviews { get; set; }
         public ICollection<Notification>? Notifications { get; set; }
         public ICollection<AIRecommendation>? AIRecommendations { get; set; }
+
+        public void CheckUnlock()
+        {
+            if (LockedAt.HasValue && LockedAt.Value.AddDays(1) <= DateTime.Now)
+            {
+                IsActive = true;
+                WarningCount = 0;
+                LockedAt = null;
+            }
+        }
     }
 }
