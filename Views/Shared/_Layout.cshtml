@@ -48,6 +48,26 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <style>
+        .msg {
+            padding: 6px 12px;
+            margin-bottom: 5px;
+            border-radius: 12px;
+            max-width: 75%;
+            word-wrap: break-word;
+        }
+
+            .msg.customer {
+                background: #0d6efd;
+                color: white;
+                margin-left: auto;
+            }
+
+            .msg.admin {
+                background: #e9ecef;
+                color: black;
+                margin-right: auto;
+            }
+
         .btn-upgrade-royal-gold {
             background: linear-gradient(135deg, #ad8a2d, #d4b25e); /* vàng hoàng gia */
             color: #fff !important;
@@ -544,48 +564,61 @@
 
         <!-- Chat Box -->
         <div id="chatBox" style="
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            width: 300px;
-            max-height: 400px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            display: none;
-            flex-direction: column;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            z-index: 9999;
-            overflow: hidden;
-        ">
+        position: fixed;
+        bottom: 90px;
+        right: 20px;
+        width: 320px;
+        height: 400px;
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        z-index: 9999;
+    ">
             <div id="chatHeader" style="
-                background: #0d6efd;
-                color: white;
-                padding: 10px;
-                font-weight: bold;
-                cursor: move;
-                position: relative;
-            ">
+            background: #0d6efd;
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+            cursor: move;
+            position: relative;
+        ">
                 Chat với Admin
                 <button id="deleteChat" style="
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: #dc3545; /* đỏ Bootstrap */
-            border: none;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            padding: 2px 8px;
-            border-radius: 5px;
-        ">
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background: #dc3545;
+                border: none;
+                color: white;
+                font-weight: bold;
+                cursor: pointer;
+                padding: 2px 8px;
+                border-radius: 5px;
+            ">
                     🗑 Xóa
                 </button>
             </div>
 
-            <div id="chatMessages" style="flex:1; padding:10px; overflow-y:auto; background:#f8f9fa;"></div>
+            <!-- Container tin nhắn -->
+            <div id="chatMessages" style="
+            flex: 1;            /* chiếm hết space còn lại */
+            overflow-y: auto;   /* scroll khi quá dài */
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #f8f9fa;
+        "></div>
 
-            <div style="display:flex; padding:5px; border-top:1px solid #ddd;">
+            <div style="
+            display: flex;
+            padding: 5px;
+            border-top: 1px solid #ddd;
+            flex-shrink: 0;     /* không bị co lại */
+        ">
                 <input id="chatInput" type="text" style="flex:1; padding:5px;" placeholder="Nhập tin nhắn..." />
                 <button id="chatSend" style="margin-left:5px; background:#0d6efd; color:white; border:none; padding:5px 10px;">Gửi</button>
             </div>
@@ -601,119 +634,112 @@
     <!-- === SCRIPTS === -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const nav = document.querySelector("nav.navbar");
-            const main = document.querySelector("main");
-            const splash = document.getElementById('splashScreen');
-
-            // === 1. Padding-top cho main để navbar fixed không che content ===
-            function adjustMainPadding() {
-                const navHeight = nav.offsetHeight;
-                main.style.paddingTop = (navHeight + 20) + "px";
-            }
-            adjustMainPadding();
-            window.addEventListener("resize", adjustMainPadding);
-
-            // Navbar shadow khi scroll
-            window.addEventListener("scroll", () => {
-                nav.classList.toggle("scrolled", window.scrollY > 20);
-            });
-
-            // Smooth scroll
-            document.querySelectorAll('.btn-scroll').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetId = btn.getAttribute('data-target');
-                    const target = document.getElementById(targetId);
-                    if (target) {
-                        const navHeight = nav.offsetHeight;
-                        target.scrollIntoView({ behavior:'smooth', block:'start' });
-                        window.scrollBy(0, -navHeight-10);
-                    }
-                });
-            });
-
-            // Splash screen chỉ hiển thị 1 lần
-            if (!sessionStorage.getItem('seenSplash')) {
-                document.body.style.overflow = 'hidden';
-                splash.style.display = 'flex';
-
-                setTimeout(() => {
-                    splash.classList.add('hidden');
-                    setTimeout(() => {
-                        splash.style.display = 'none';
-                        document.body.style.overflow = '';
-                    }, 600);
-                }, 2400);
-
-                sessionStorage.setItem('seenSplash', 'true');
-            } else {
-                splash.style.display = 'none';
-            }
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @if (SignInManager.IsSignedIn(User) && !isAdmin && !isStaff)
     {
         <script>
-                        let roomId = @(_context.ChatRooms.FirstOrDefault(r => r.CustomerId == currentUser.Id)?.Id ?? 0);
+            $(document).ready(function() {
+                const chatBox = $("#chatBox");
+                const chatBubble = $("#chatBubble");
+                const chatMessages = $("#chatMessages");
+                const chatBadge = $("#chatBadge");
+                const chatInput = $("#chatInput");
+                const chatSend = $("#chatSend");
+                const deleteChatBtn = $("#deleteChat");
 
-            // Bật/tắt chat box
-            $("#chatBubble").click(function() {
-                $("#chatBox").toggle();
-                loadMessages();
-                // Khi mở chat, ẩn badge
-                $("#chatBadge").hide();
-            });
+                // Lấy roomId từ Razor
+                const roomId = @(_context.ChatRooms.FirstOrDefault(r => r.CustomerId == currentUser.Id)?.Id ?? 0);
 
-            // Load tin nhắn
-            function loadMessages() {
-                if(roomId === 0) return;
-                $.get("/Chat/Load", { roomId: roomId }, function(data){
-                    const box = $("#chatMessages");
-                    box.html("");
+                // === 1. Lưu trạng thái chatBox trong sessionStorage ===
+                if (sessionStorage.getItem("chatBoxOpen") === "true") {
+                    chatBox.show();
+                } else {
+                    chatBox.hide();
+                }
 
-                    data.forEach(m => {
-                        const who = m.userId === "@currentUser.Id" ? "customer" : "admin";
-                        const msgDiv = $(`<div style="
-                            padding:8px 12px;
-                            border-radius:15px;
-                            margin-bottom:5px;
-                            max-width:75%;
-                            ${who==='customer'?'background:#0d6efd;color:white;margin-left:auto;':'background:#e9ecef;color:black;margin-right:auto;'}
-                        ">${m.content}</div>`);
-                        box.append(msgDiv);
+                // === 2. Bấm bong bóng chat toggle chatBox ===
+                chatBubble.click(function() {
+                    chatBox.toggle();
+                    sessionStorage.setItem("chatBoxOpen", chatBox.is(":visible"));
+                    loadMessages();
+                    chatBadge.hide();
+                });
+
+                // === 3. Load tin nhắn ===
+                function loadMessages() {
+                    if (roomId === 0) return;
+
+                    $.get("/Chat/Load", { roomId: roomId }, function(data) {
+                        chatMessages.empty();
+
+                        data.forEach(m => {
+                            const who = m.userId === "@currentUser.Id" ? "customer" : "admin";
+                            const msgDiv = $(`<div class="msg ${who}"></div>`).text(m.content);
+                            chatMessages.append(msgDiv);
+                        });
+
+                        // Luôn scroll xuống cuối
+                        chatMessages.scrollTop(chatMessages[0].scrollHeight);
+
+                        // Hiện badge nếu chatBox đóng và có tin nhắn mới từ Admin
+                        if (!chatBox.is(":visible") && data.some(m => m.userId !== "@currentUser.Id")) {
+                            chatBadge.show();
+                        }
                     });
+                }
 
-                    box.scrollTop(box[0].scrollHeight);
+                // === 4. Gửi tin nhắn ===
+                chatSend.click(function() {
+                    let text = chatInput.val().trim();
+                    if (!text) return;
 
-                    // Nếu bubble đang ẩn và có tin nhắn mới từ Admin thì hiện badge
-                    if($("#chatBox").is(":hidden") && data.some(m => m.userId !== "@currentUser.Id")) {
-                        $("#chatBadge").show();
+                    $.post("/Chat/Send", { roomId: roomId, msg: text }, function(res) {
+                        if (!res.ok) Swal.fire('Lỗi', res.msg, 'error');
+                        chatInput.val("");
+                        loadMessages();
+                    });
+                });
+
+                // Enter gửi tin nhắn
+                chatInput.keypress(function(e) {
+                    if (e.which === 13) { // Enter
+                        chatSend.click();
+                        return false;
                     }
                 });
-            }
 
-            // Gửi tin nhắn
-            $("#chatSend").click(function(){
-                let text = $("#chatInput").val().trim();
-                if(!text) return;
-                $.post("/Chat/Send", { roomId: roomId, msg: text }, function(res){
-                    if(!res.ok) alert(res.msg);
-                    $("#chatInput").val("");
-                    loadMessages();
+                // === 5. Xóa toàn bộ chat ===
+                deleteChatBtn.click(function() {
+                    if (roomId === 0) return;
+
+                    Swal.fire({
+                        title: 'Bạn có chắc?',
+                        text: "Bạn sẽ xóa toàn bộ tin nhắn!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Đúng, xóa nó!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.post("/Chat/DeleteChat/" + roomId, function(res) {
+                                if (res.ok) {
+                                    chatMessages.empty();
+                                    Swal.fire('Đã xóa!', res.msg, 'success');
+                                } else {
+                                    Swal.fire('Lỗi', res.msg, 'error');
+                                }
+                            });
+                        }
+                    });
                 });
+
+                // === 6. Auto refresh mỗi giây ===
+                setInterval(loadMessages, 1000);
             });
-                        $("#deleteChat").click(function(){
-                if(roomId === 0) return;
-                if(confirm("Bạn có chắc muốn xóa toàn bộ tin nhắn phía bạn?")) {
-                    window.location.href = "/Chat/DeleteChat/" + roomId;
-                }
-            });
-            // Auto refresh mỗi giây
-            setInterval(loadMessages, 1000);
         </script>
     }
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

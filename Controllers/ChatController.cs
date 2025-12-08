@@ -195,16 +195,17 @@ public class ChatController : Controller
     // ===========================
     // XÓA TIN NHẮN 1 PHÍA
     // ===========================
+    [HttpPost]
     public async Task<IActionResult> DeleteChat(int id)
     {
         var me = await _user.GetUserAsync(User);
-        if (me == null) return Unauthorized();
+        if (me == null) return Json(new { ok = false, msg = "Chưa đăng nhập!" });
 
         var room = await _ctx.ChatRooms
             .Include(r => r.Messages)
             .FirstOrDefaultAsync(r => r.Id == id);
 
-        if (room == null) return NotFound();
+        if (room == null) return Json(new { ok = false, msg = "Phòng chat không tồn tại!" });
 
         bool isAdmin = await _user.IsInRoleAsync(me, "Admin");
 
@@ -223,6 +224,6 @@ public class ChatController : Controller
 
         await _ctx.SaveChangesAsync();
 
-        return isAdmin ? RedirectToAction("Rooms") : RedirectToAction("Customer");
+        return Json(new { ok = true, msg = "Đã xóa tất cả tin nhắn!" });
     }
 }
