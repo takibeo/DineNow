@@ -5,7 +5,7 @@ using System.Text.Json;
 public class BadWordService
 {
     private readonly HttpClient _http;
-    private readonly string _api;
+    private readonly string _api;   // HuggingFace API key
 
     public BadWordService(HttpClient http, IConfiguration config)
     {
@@ -13,64 +13,98 @@ public class BadWordService
         _api = config["HuggingFace:ApiKey"];
     }
 
+    // ===========================
+    // Kiểm tra song song cả 2 model
+    // ===========================
     public async Task<bool> IsBadAsync(string text)
     {
-        var req = new HttpRequestMessage(
-            HttpMethod.Post,
-            "https://api-inference.huggingface.co/models/unitary/toxic-bert"
-        );
-
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _api);
-
-        req.Content = new StringContent(
-            JsonSerializer.Serialize(new { inputs = text }),
-            Encoding.UTF8,
-            "application/json"
-        );
-
-        var resp = await _http.SendAsync(req);
-        var json = await resp.Content.ReadAsStringAsync();
-
-        // Nếu trả về HTML hoặc rỗng → KHÔNG PHẢI JSON → tránh crash
-        if (string.IsNullOrWhiteSpace(json) || json.TrimStart().StartsWith("<"))
+        var tasks = new[]
         {
-            Console.WriteLine("⚠ HF trả về HTML / lỗi:");
-            Console.WriteLine(json);
-            return false; // không block tin nhắn, nhưng không crash
-        }
+            CheckHuggingFaceAsync("https://api-inference.huggingface.co/models/unitary/toxic-bert", text),
+            CheckHuggingFaceAsync("https://api-inference.huggingface.co/models/vijjj1/toxic-comment-phobert", text)
+        };
 
-        JsonDocument doc;
+        var results = await Task.WhenAll(tasks);
+        return results.Any(r => r);
+    }
+
+    // ===========================
+    // Kiểm tra 1 model Hugging Face
+    // ===========================
+    private async Task<bool> CheckHuggingFaceAsync(string modelUrl, string text)
+    {
         try
         {
-            doc = JsonDocument.Parse(json);
-        }
-        catch
-        {
-            Console.WriteLine("⚠ JSON parse error:");
-            Console.WriteLine(json);
+            var req = new HttpRequestMessage(HttpMethod.Post, modelUrl);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _api);
+            req.Content = new StringContent(
+                JsonSerializer.Serialize(new { inputs = text }),
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            var resp = await _http.SendAsync(req);
+            var json = await resp.Content.ReadAsStringAsync();
+
+            Console.WriteLine($"--- HF Model: {modelUrl} ---");
+            Console.WriteLine($"Tin nhắn: {text}");
+            Console.WriteLine($"Raw JSON: {json}");
+
+            if (string.IsNullOrWhiteSpace(json) || json.TrimStart().StartsWith("<"))
+            {
+                Console.WriteLine("⚠ HF trả về HTML hoặc lỗi, bỏ qua.");
+                return false;
+            }
+
+            JsonDocument doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() == 0)
+                return false;
+
+            JsonElement first = root[0];
+
+            // Nếu first là object → model trả kiểu đơn giản
+            if (first.ValueKind == JsonValueKind.Object)
+            {
+                return ParseLabelScore(first);
+            }
+            // Nếu first là array → model trả nested array
+            else if (first.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in first.EnumerateArray())
+                {
+                    if (ParseLabelScore(item))
+                        return true;
+                }
+            }
+
             return false;
         }
-
-        var arr = doc.RootElement;
-
-        // trường hợp model đang load: trả về JSON nhưng không có dữ liệu dự đoán
-        if (!arr.ValueKind.Equals(JsonValueKind.Array))
+        catch (Exception ex)
         {
-            Console.WriteLine("⚠ Unexpected JSON format:");
-            Console.WriteLine(json);
+            Console.WriteLine($"⚠ HF exception: {ex.Message}");
             return false;
         }
+    }
 
-        foreach (var item in arr[0].EnumerateArray())
-        {
-            string label = item.GetProperty("label").GetString();
-            double score = item.GetProperty("score").GetDouble();
+    // ===========================
+    // Kiểm tra label & score
+    // ===========================
+    private bool ParseLabelScore(JsonElement item)
+    {
+        if (!item.TryGetProperty("label", out var labelProp) ||
+            !item.TryGetProperty("score", out var scoreProp))
+            return false;
 
-            if (label == "toxic" && score > 0.55)
-                return true;
-        }
+        string label = labelProp.GetString()?.ToLower() ?? "";
+        double score = scoreProp.GetDouble();
+
+        Console.WriteLine($"Label: {label}, Score: {score}");
+
+        if ((label.Contains("toxic") || label.Contains("hate") || label == "label_1") && score > 0.55)
+            return true;
 
         return false;
     }
-
 }
