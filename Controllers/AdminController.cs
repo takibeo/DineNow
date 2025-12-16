@@ -210,6 +210,7 @@ namespace DoAnChuyenNganh.Controllers
 
         // ❌ Xóa nhà hàng
         [HttpPost]
+        [HttpPost]
         public async Task<IActionResult> DeleteRestaurant(int id)
         {
             var restaurant = await _context.Restaurants.FindAsync(id);
@@ -225,17 +226,50 @@ namespace DoAnChuyenNganh.Controllers
                 .Select(sr => sr.UserId)
                 .ToListAsync();
 
-            // Xóa liên kết StaffRestaurant
+            // 🔹 Xóa liên kết StaffRestaurant
             var staffLinks = await _context.StaffRestaurants
                 .Where(sr => sr.RestaurantId == id)
                 .ToListAsync();
             _context.StaffRestaurants.RemoveRange(staffLinks);
 
-            // Xóa nhà hàng
+            // 🔹 Xóa menu của nhà hàng
+            var menus = await _context.MenuItems
+                .Where(m => m.RestaurantId == id)
+                .ToListAsync();
+            _context.MenuItems.RemoveRange(menus);
+
+            // 🔹 Xóa các review
+            var reviews = await _context.Reviews
+                .Where(r => r.RestaurantId == id)
+                .ToListAsync();
+            _context.Reviews.RemoveRange(reviews);
+
+            // 🔹 Xóa các reservation
+            var reservations = await _context.Reservations
+                .Where(r => r.RestaurantId == id)
+                .ToListAsync();
+            _context.Reservations.RemoveRange(reservations);
+
+            // 🔹 Xóa các đơn hàng (Orders)
+            var orders = await _context.Orders
+                .Where(o => o.RestaurantId == id)
+                .ToListAsync();
+            _context.Orders.RemoveRange(orders);
+
+            // 🔹 Xóa thông báo liên quan đến staff quản lý
+            var notifications = await _context.Notifications
+                .Where(n => staffList.Contains(n.UserId))
+                .ToListAsync();
+            _context.Notifications.RemoveRange(notifications);
+
+            // 🔹 Lưu các thay đổi trước khi xóa nhà hàng
+            await _context.SaveChangesAsync();
+
+            // 🔹 Xóa nhà hàng
             _context.Restaurants.Remove(restaurant);
             await _context.SaveChangesAsync();
 
-            // Gửi thông báo cho Staff quản lý
+            // 🔹 Gửi thông báo cho Staff quản lý
             foreach (var staffId in staffList)
             {
                 await SaveNotification(
@@ -244,9 +278,10 @@ namespace DoAnChuyenNganh.Controllers
                 );
             }
 
-            TempData["Success"] = $"Đã xóa nhà hàng: {restaurant.Name}";
+            TempData["Success"] = $"Đã xóa nhà hàng: {restaurant.Name} ";
             return RedirectToAction(nameof(ManageRestaurants));
         }
+
 
         // ✅ Phê duyệt nhà hàng
         [HttpPost]

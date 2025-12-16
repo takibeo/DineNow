@@ -1,69 +1,112 @@
 ﻿@model IEnumerable<DoAnChuyenNganh.Models.UserLog>
-
 @{
     ViewData["Title"] = "Lịch sử hoạt động";
 }
 
+<link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+<style>
+    :root {
+        --coral: #ff6b6b;
+        --coral-dark: #ee5a5a;
+        --bg-card: #fff;
+    }
+
+    .text-coral {
+        color: var(--coral);
+    }
+
+    .btn-coral {
+        background-color: var(--coral);
+        color: #fff;
+        border-radius: .5rem;
+        transition: all 0.3s;
+    }
+
+        .btn-coral:hover {
+            background-color: var(--coral-dark);
+            transform: translateY(-2px);
+        }
+
+    .card-history {
+        background-color: var(--bg-card);
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+        transition: all 0.3s;
+    }
+
+        .card-history:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 1rem 2rem rgba(0,0,0,0.2);
+        }
+
+    table tbody tr:hover {
+        background-color: #ffe3e3;
+        transition: 0.3s;
+    }
+</style>
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>@ViewData["Title"]</h2>
-
+        <h2 class="text-coral">@ViewData["Title"]</h2>
         @if (Model.Any())
         {
             <form id="clearLogsForm" asp-action="ClearAllLogs" method="post">
-                <button type="button" id="btnClearLogs" class="btn btn-danger btn-sm">
-                    🗑️ Xóa toàn bộ lịch sử
-                </button>
+                <button type="button" id="btnClearLogs" class="btn btn-coral fw-semibold"><i class="bi bi-trash me-1"></i> Xóa toàn bộ</button>
             </form>
         }
     </div>
 
     @if (!Model.Any())
     {
-        <div class="alert alert-info">Bạn chưa có lịch sử hoạt động nào.</div>
+        <div class="alert alert-info text-center animate__animated animate__fadeIn">
+            Bạn chưa có lịch sử hoạt động nào.
+        </div>
     }
     else
     {
-        <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Hành động</th>
-                    <th>Mô tả</th>
-                    <th>Thời gian</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var log in Model)
-                {
-                    <tr>
-                        <td>@log.Action</td>
-                        <td>@log.Description</td>
-                        <td>@log.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <div class="card card-history p-3 animate__animated animate__fadeInUp">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Hành động</th>
+                            <th>Mô tả</th>
+                            <th>Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model)
+                        {
+                            <tr class="animate__animated animate__fadeInUp">
+                                <td><i class="bi bi-arrow-right-circle me-1 text-coral"></i>@log.Action</td>
+                                <td>@log.Description</td>
+                                <td>@log.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     }
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
-        document.getElementById("btnClearLogs")?.addEventListener("click", function () {
+        document.getElementById("btnClearLogs")?.addEventListener("click", function() {
             Swal.fire({
                 title: "Xóa toàn bộ lịch sử?",
-                text: "Thao tác này không thể hoàn tác. Bạn có chắc chắn muốn tiếp tục không?",
+                text: "Thao tác này không thể hoàn tác.",
                 icon: "warning",
                 showCancelButton: true,
                 confirmButtonText: "Có, xóa tất cả",
                 cancelButtonText: "Hủy",
-                confirmButtonColor: "#d33",
+                confirmButtonColor: "var(--coral)",
                 cancelButtonColor: "#6c757d"
             }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById("clearLogsForm").submit();
-                }
+                if(result.isConfirmed) document.getElementById("clearLogsForm").submit();
             });
         });
     </script>

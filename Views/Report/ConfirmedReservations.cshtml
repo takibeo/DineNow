@@ -68,7 +68,7 @@
                 year: yearSelect.value
             });
 
-            fetch(`/StaffReport/GetConfirmedReservationData?${params}`)
+            fetch(`/Report/GetConfirmedReservationData?${params}`)
                 .then(res => res.json())
                 .then(data => {
                     const labels = data.map(x => x.label);
