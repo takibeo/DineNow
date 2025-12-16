@@ -1,0 +1,72 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.Order>
+
+@{
+    ViewData["Title"] = "Đơn hàng của tôi";
+}
+
+<h2 class="mb-4">@ViewData["Title"]</h2>
+
+@if (!Model.Any())
+{
+    <p>Bạn chưa có đơn hàng nào.</p>
+}
+else
+{
+    <table class="table table-bordered table-hover table-striped align-middle">
+        <thead class="table-light">
+            <tr>
+                <th style="width:40px;">STT</th>
+                <th>Nhà hàng</th>
+                <th>Ngày tạo</th>
+                <th>Tổng tiền</th>
+                <th>Thanh toán</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        @{
+            int stt = 0;
+        }
+        <tbody>
+            @foreach (var order in Model)
+            {
+                <tr>
+                    <td>@(++stt)</td>
+                    <td>@order.Restaurant?.Name</td>
+                    <td>@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@order.TotalAmount.ToString("N0") đ</td>
+                    <td>
+                        <span class="badge @(string.IsNullOrEmpty(order.PaymentMethod) ? "bg-secondary" : "bg-info")">
+                            @(order.PaymentMethod ?? "Chưa chọn")
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge
+                                      @(order.Status == "Pending" ? "bg-warning text-dark" :
+                                                              order.Status == "Confirmed" ? "bg-success" :
+                                                              order.Status == "Canceled" ? "bg-danger" :
+                                                              "bg-secondary")">
+                            @order.Status
+                        </span>
+                    </td>
+                    <td class="d-flex gap-1 flex-wrap">
+                        <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-sm btn-info">
+                            Xem chi tiết
+                        </a>
+
+                        @if (order.Status != "Confirmed" && order.Status != "Canceled")
+                        {
+                            <form asp-action="CancelOrder" method="post" class="m-0 p-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="orderId" value="@order.Id" />
+                                <button class="btn btn-danger btn-sm">
+                                    Hủy đơn
+                                </button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -94,7 +94,7 @@
             // Flatpickr cho ngày
             flatpickr("#dateInput", {
                 dateFormat: "Y-m-d",
-                //minDate: "today",
+                minDate: "today",
                 allowInput: false,
                 disableMobile: true,
             });
@@ -129,7 +129,7 @@
             timeDropdown.addEventListener("change", updateHiddenDate);
 
             // Chặn chọn giờ đã trôi qua hôm nay
-            /*
+            
             dateInput.addEventListener("change", function () {
                 const selectedDate = new Date(dateInput.value);
                 const today = new Date();
@@ -153,7 +153,7 @@
 
                 updateHiddenDate();
             });
-            */
+           
 
             // SweetAlert2 xác nhận trước khi submit
             form.addEventListener("submit", function (e) {

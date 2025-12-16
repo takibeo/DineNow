@@ -1,0 +1,81 @@
+﻿<h2>Báo cáo doanh thu</h2>
+
+<form class="mb-4" onsubmit="return false;">
+    <select id="groupBy">
+        <option value="Month" selected>Theo tháng</option>
+        <option value="Year">Theo năm</option>
+    </select>
+
+    <select id="year"></select>
+</form>
+
+<canvas id="revenueChart" height="120"></canvas>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let chart;
+        const yearSelect = document.getElementById('year');
+        const groupBySelect = document.getElementById('groupBy');
+
+        // Tạo danh sách năm
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear - 5; y <= currentYear; y++) {
+            yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+        }
+        yearSelect.value = currentYear;
+
+        function toggleYear() {
+            yearSelect.style.display =
+                groupBySelect.value === 'Month' ? 'inline-block' : 'none';
+        }
+
+        function loadChart() {
+            toggleYear();
+
+            const params = new URLSearchParams({
+                groupBy: groupBySelect.value,
+                year: yearSelect.value
+            });
+
+            fetch(`/Report/GetRevenueData?${params}`)
+                .then(res => res.json())
+                .then(data => {
+                    const labels = data.map(x => x.label);
+                    const values = data.map(x => x.value);
+
+                    if (!chart) {
+                        chart = new Chart(document.getElementById('revenueChart'), {
+                            type: 'bar',
+                            data: {
+                                labels,
+                                datasets: [{
+                                    label: 'Doanh thu (VNĐ)',
+                                    data: values
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            callback: v => v.toLocaleString()
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        chart.data.labels = labels;
+                        chart.data.datasets[0].data = values;
+                        chart.update();
+                    }
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadChart);
+        document.querySelectorAll('select')
+            .forEach(e => e.addEventListener('change', loadChart));
+    </script>
+}

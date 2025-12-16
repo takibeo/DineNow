@@ -3,16 +3,22 @@
     public class ChatRoom
     {
         public int Id { get; set; }
+
         public string CustomerId { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public string StaffId { get; set; }  // mới: room dành cho Staff
 
-        public bool DeletedByAdmin { get; set; } = false;
-        public bool DeletedByCustomer { get; set; } = false;
+        public bool DeletedByCustomer { get; set; }
+        public bool DeletedByAdmin { get; set; }
+        public bool DeletedByStaff { get; set; } // trạng thái xóa cho staff
 
-        // Thời điểm xóa cuối cùng, để ẩn tin nhắn cũ
-        public DateTime? LastDeletedByAdmin { get; set; }
         public DateTime? LastDeletedByCustomer { get; set; }
-        public DateTime? LastReadByAdmin { get; set; }  // chỉ để badge, không ảnh hưởng tin nhắn
+        public DateTime? LastDeletedByAdmin { get; set; }
+        public DateTime? LastDeletedByStaff { get; set; }
+
+        public DateTime? LastReadByAdmin { get; set; }
+        public DateTime? LastReadByStaff { get; set; }
+
+        public DateTime CreatedAt { get; set; }
 
         public ICollection<Message> Messages { get; set; }
     }

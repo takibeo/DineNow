@@ -44,17 +44,28 @@
                     <td>@bill.ReservationFee.ToString("N0") đ</td>
                     <td>@bill.TotalFee.ToString("N0") đ</td>
                     <td>
-                        @if (bill.IsPaid)
+                        @switch (bill.Status)
                         {
-                            <span class="badge bg-success">Đã thanh toán</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-warning text-dark">Chưa thanh toán</span>
+                            case DoAnChuyenNganh.Models.BillingStatus.Accepted:
+                                <span class="badge bg-success">Đã thanh toán</span>
+                                ;
+                                break;
+                            case DoAnChuyenNganh.Models.BillingStatus.Pending:
+                                <span class="badge bg-info text-dark">Đang chờ</span>
+                                ;
+                                break;
+                            case DoAnChuyenNganh.Models.BillingStatus.Rejected:
+                                <span class="badge bg-danger">Bị từ chối</span>
+                                ;
+                                break;
+                            default:
+                                <span class="badge bg-warning text-dark">Chưa thanh toán</span>
+                                ;
+                                break;
                         }
                     </td>
                     <td>
-                        @if (!bill.IsPaid)
+                        @if (bill.Status != DoAnChuyenNganh.Models.BillingStatus.Accepted)
                         {
                             <a class="btn btn-primary btn-sm" href="@Url.Action("Pay", "StaffBilling", new { id = bill.Id })">Thanh toán</a>
                         }

@@ -1,0 +1,54 @@
+﻿@{
+    ViewData["Title"] = "Báo cáo hệ thống";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-center fw-bold">📊 BÁO CÁO HỆ THỐNG</h2>
+
+    <div class="row justify-content-center">
+        <div class="col-md-5 mb-3">
+            <a asp-controller="Report" asp-action="ConfirmedReservations"
+               class="card text-decoration-none shadow-sm report-card">
+                <div class="card-body text-center">
+                    <div class="display-4 mb-2">📝</div>
+                    <h5 class="card-title fw-bold">Báo cáo đơn đặt bàn</h5>
+                    <p class="card-text text-muted">
+                        Thống kê số lượng đơn đặt bàn thành công
+                        theo ngày, tháng hoặc năm
+                    </p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-5 mb-3">
+            <a asp-controller="Report" asp-action="RevenueReport"
+               class="card text-decoration-none shadow-sm report-card">
+                <div class="card-body text-center">
+                    <div class="display-4 mb-2">💰</div>
+                    <h5 class="card-title fw-bold">Báo cáo doanh thu</h5>
+                    <p class="card-text text-muted">
+                        Tổng hợp doanh thu từ các hóa đơn đã thanh toán
+                        theo tháng hoặc năm
+                    </p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .report-card {
+        transition: all 0.25s ease;
+        border-radius: 12px;
+        border: none;
+    }
+
+    .report-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .report-card .card-body {
+        padding: 2.5rem 2rem;
+    }
+</style>

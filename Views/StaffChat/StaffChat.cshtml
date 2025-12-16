@@ -1,0 +1,51 @@
+﻿@model DoAnChuyenNganh.Models.ChatRoom
+
+@{
+    ViewData["Title"] = "Chat với Customer";
+}
+
+<h2>Chat với: @ViewBag.CustomerName</h2>
+
+<div id="chatBox" style="border:1px solid #ddd;height:400px;overflow-y:auto;padding:10px;margin-bottom:10px;">
+    <!-- Tin nhắn sẽ load ở đây -->
+</div>
+
+<div class="input-group mb-3">
+    <input type="text" id="txtMessage" class="form-control" placeholder="Nhập tin nhắn">
+    <button class="btn btn-primary" id="btnSend">Gửi</button>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+    var roomId = @Model.Id;
+
+    function loadMessages(){
+        $.get("/StaffChat/Load", { roomId: roomId }, function(data){
+            let html = "";
+            data.forEach(m => {
+                let color = m.isBlocked ? "red" : "black";
+                html += `<div><b>${m.senderName}:</b> <span style="color:${color}">${m.content}</span> <small>${new Date(m.createdAt).toLocaleString()}</small></div>`;
+            });
+            $("#chatBox").html(html);
+            $("#chatBox").scrollTop($("#chatBox")[0].scrollHeight);
+        });
+    }
+
+    $(document).ready(function(){
+        loadMessages();
+        setInterval(loadMessages, 3000); // load mỗi 3s
+
+        $("#btnSend").click(function(){
+            let msg = $("#txtMessage").val();
+            if(!msg) return;
+            $.post("/StaffChat/Send", { roomId: roomId, msg: msg }, function(res){
+                if(res.ok){
+                    $("#txtMessage").val("");
+                    loadMessages();
+                } else {
+                    alert(res.msg);
+                }
+            });
+        });
+    });
+</script>

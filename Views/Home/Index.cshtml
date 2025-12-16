@@ -51,9 +51,9 @@
     <!-- Bộ lọc -->
     <form id="filterForm" method="get" class="filter-container d-flex align-items-center mb-4">
         <div class="filter-wrapper position-relative flex-grow-1 me-2">
-            <button type="button" class="scroll-btn left">
+            @* <button type="button" class="scroll-btn left">
                 <i class="bi bi-chevron-left"></i>
-            </button>
+            </button> *@
             <div class="filter-bar d-flex flex-nowrap gap-2 px-3 align-items-center">
                 <input type="text" name="search" class="form-control filter-item search-box"
                        placeholder="Tên quán..." value="@Context.Request.Query["search"]" />
@@ -86,9 +86,9 @@
                 <input type="number" name="maxPrice" class="form-control filter-item price-box"
                        placeholder="Giá max" value="@Context.Request.Query["maxPrice"]" />
             </div>
-            <button type="button" class="scroll-btn right">
+            @* <button type="button" class="scroll-btn right">
                 <i class="bi bi-chevron-right"></i>
-            </button>
+            </button> *@
         </div>
         <button class="btn btn-primary btn-filter" type="submit">
             <i class="bi bi-funnel"></i> Lọc

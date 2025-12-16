@@ -4,6 +4,7 @@ using DoAnChuyenNganh.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAnChuyenNganh.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    partial class AppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20251215130324_UpdateStaffBilling")]
+    partial class UpdateStaffBilling
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -189,75 +192,6 @@ namespace DoAnChuyenNganh.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("DoAnChuyenNganh.Models.Order", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("AdminCommission")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RestaurantId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RestaurantId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Orders");
-                });
-
-            modelBuilder.Entity("DoAnChuyenNganh.Models.OrderItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("MenuItemId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MenuItemId");
-
-                    b.HasIndex("OrderId");
-
-                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("DoAnChuyenNganh.Models.Payment", b =>
@@ -883,44 +817,6 @@ namespace DoAnChuyenNganh.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DoAnChuyenNganh.Models.Order", b =>
-                {
-                    b.HasOne("DoAnChuyenNganh.Models.Restaurant", "Restaurant")
-                        .WithMany("Orders")
-                        .HasForeignKey("RestaurantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DoAnChuyenNganh.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Restaurant");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DoAnChuyenNganh.Models.OrderItem", b =>
-                {
-                    b.HasOne("DoAnChuyenNganh.Models.MenuItem", "MenuItem")
-                        .WithMany()
-                        .HasForeignKey("MenuItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DoAnChuyenNganh.Models.Order", "Order")
-                        .WithMany("Items")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MenuItem");
-
-                    b.Navigation("Order");
-                });
-
             modelBuilder.Entity("DoAnChuyenNganh.Models.Payment", b =>
                 {
                     b.HasOne("DoAnChuyenNganh.Models.Reservation", "Reservation")
@@ -1091,11 +987,6 @@ namespace DoAnChuyenNganh.Migrations
                     b.Navigation("Messages");
                 });
 
-            modelBuilder.Entity("DoAnChuyenNganh.Models.Order", b =>
-                {
-                    b.Navigation("Items");
-                });
-
             modelBuilder.Entity("DoAnChuyenNganh.Models.Reservation", b =>
                 {
                     b.Navigation("Payment");
@@ -1104,8 +995,6 @@ namespace DoAnChuyenNganh.Migrations
             modelBuilder.Entity("DoAnChuyenNganh.Models.Restaurant", b =>
                 {
                     b.Navigation("MenuItems");
-
-                    b.Navigation("Orders");
 
                     b.Navigation("Reservations");
 

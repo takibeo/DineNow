@@ -1,0 +1,76 @@
+﻿@model DoAnChuyenNganh.Models.ChatRoom
+
+@{
+    ViewData["Title"] = "Chat với Staff";
+}
+
+<h2>Chat với Staff @ViewBag.StaffName</h2>
+
+<div id="chat-box" style="border:1px solid #ccc; height:400px; overflow-y:auto; padding:10px; margin-bottom:10px;">
+    <!-- Tin nhắn sẽ load ở đây -->
+</div>
+
+<input type="text" id="txtMessage" class="form-control" placeholder="Nhập tin nhắn..." />
+<button id="btnSend" class="btn btn-primary mt-2">Gửi</button>
+<button id="btnDelete" class="btn btn-danger mt-2">Xóa tin nhắn</button>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        var roomId = @Model.Id;
+
+        function loadMessages() {
+            $.get("/StaffChat/Load", { roomId: roomId }, function (data) {
+                var html = "";
+                data.forEach(function (msg) {
+                    html += "<p><strong>" + msg.senderName + ":</strong> " + msg.content + "</p>";
+                });
+                $("#chat-box").html(html);
+                $("#chat-box").scrollTop($("#chat-box")[0].scrollHeight);
+            });
+        }
+
+        $("#btnSend").click(function () {
+            var msg = $("#txtMessage").val();
+            if (!msg) return;
+
+            $.post("/StaffChat/Send", { roomId: roomId, msg: msg }, function (res) {
+                if (res.ok) {
+                    $("#txtMessage").val("");
+                    loadMessages();
+                } else {
+                    Swal.fire("Lỗi", res.msg, "error");
+                }
+            });
+        });
+
+        $("#btnDelete").click(function () {
+            Swal.fire({
+                title: "Xóa tất cả tin nhắn?",
+                text: "Hành động này sẽ xóa toàn bộ tin nhắn của bạn trong phòng chat.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Xóa",
+                cancelButtonText: "Hủy",
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#6c757d"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post("/StaffChat/DeleteChat", { id: roomId }, function (res) {
+                        if (res.ok) {
+                            Swal.fire("Đã xóa!", res.msg, "success");
+                            $("#chat-box").html(""); // xóa hiển thị tin nhắn
+                        } else {
+                            Swal.fire("Lỗi", res.msg, "error");
+                        }
+                    });
+                }
+            });
+        });
+
+        // Load tin nhắn mỗi 2s
+        setInterval(loadMessages, 2000);
+        loadMessages();
+    </script>
+}

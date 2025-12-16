@@ -1,0 +1,106 @@
+﻿@model DoAnChuyenNganh.Models.Order
+
+@{
+    ViewData["Title"] = "Chi tiết đơn hàng";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+<h2 class="mb-4 text-primary"><i class="bi bi-receipt"></i> Chi tiết đơn hàng</h2>
+
+<div class="row g-3 mb-4">
+    <!-- Thông tin khách hàng -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-person"></i> Thông tin khách hàng
+            </div>
+            <div class="card-body">
+                <p><b>Tên:</b> @Model.User?.FullName</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông tin nhà hàng -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-shop"></i> Nhà hàng
+            </div>
+            <div class="card-body">
+                <p><b>@Model.Restaurant?.Name</b></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Danh sách món -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-secondary text-white">
+        <i class="bi bi-list-ul"></i> Danh sách món
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Hình ảnh</th>
+                    <th>Món</th>
+                    <th>Số lượng</th>
+                    <th>Giá</th>
+                    <th>Tạm tính</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td style="width:100px;">
+                            @if (!string.IsNullOrEmpty(item.MenuItem?.ImageUrl))
+                            {
+                                <img src="@item.MenuItem.ImageUrl" class="img-thumbnail rounded" style="max-width:80px;" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">Chưa có ảnh</span>
+                            }
+                        </td>
+                        <td>@item.MenuItem?.Name</td>
+                        <td>@item.Quantity</td>
+                        <td>@item.Price.ToString("N0") đ</td>
+                        <td class="fw-bold">@((item.Price* item.Quantity).ToString("N0")) đ</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Thanh toán và trạng thái -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="alert alert-info shadow-sm">
+            <i class="bi bi-credit-card"></i> <b>Phương thức thanh toán:</b> @(string.IsNullOrEmpty(Model.PaymentMethod) ? "Chưa chọn" : Model.PaymentMethod)
+        </div>
+        <div class="alert alert-success shadow-sm">
+            <i class="bi bi-cash-stack"></i> <b>Tổng tiền:</b> @Model.TotalAmount.ToString("N0") đ
+        </div>
+    </div>
+
+    <div class="col-md-6 d-flex align-items-center justify-content-center">
+        <span class="badge
+      @(Model.Status == "Pending" ? "bg-warning text-dark" :
+                      Model.Status == "Confirmed" ? "bg-success" :
+                      Model.Status == "Canceled" ? "bg-danger" :
+                      "bg-secondary")
+      fs-5 py-2 px-3 shadow-sm">
+
+            <i class="bi @(Model.Status == "Pending" ? "bi-clock-history" :
+                                 Model.Status == "Confirmed" ? "bi-check-circle" :
+                                 Model.Status == "Canceled" ? "bi-x-circle" : "") me-1"></i>
+
+            @Model.Status
+        </span>
+    </div>
+</div>
+
+<a asp-action="MyOrders" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Quay lại</a>

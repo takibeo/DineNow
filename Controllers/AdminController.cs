@@ -351,7 +351,7 @@ namespace DoAnChuyenNganh.Controllers
                     StaffId = staff.Id,
                     StaffName = staff.FullName,
                     LastBillMonth = lastBill?.Month,
-                    IsPaid = lastBill?.IsPaid,
+                    Status = lastBill?.Status ?? BillingStatus.Unpaid,
                     HasManagedRestaurants = hasRestaurants
                 });
             }
@@ -373,10 +373,10 @@ namespace DoAnChuyenNganh.Controllers
             if (lastBill == null)
                 return Json(new { success = false, message = "Không tìm thấy hóa đơn cho Staff này." });
 
-            lastBill.IsPaid = true; // đánh dấu Admin đã chấp nhận
+            lastBill.Status = BillingStatus.Accepted;
             await _context.SaveChangesAsync();
 
-            return Json(new { success = true, message = "Thanh toán đã được chấp nhận." });
+            return Json(new { success = true, message = "Thanh toán đã được Admin chấp nhận." });
         }
 
         [HttpPost]
@@ -393,10 +393,11 @@ namespace DoAnChuyenNganh.Controllers
             if (lastBill == null)
                 return Json(new { success = false, message = "Không tìm thấy hóa đơn cho Staff này." });
 
-            _context.StaffBillings.Remove(lastBill); // xóa bản ghi để tạo lại
+            lastBill.Status = BillingStatus.Rejected;
             await _context.SaveChangesAsync();
 
-            return Json(new { success = true, message = "Thanh toán đã bị từ chối." });
+            return Json(new { success = true, message = "Thanh toán đã bị Admin từ chối." });
         }
+
     }
 }

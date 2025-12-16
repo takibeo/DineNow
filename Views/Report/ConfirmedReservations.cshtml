@@ -1,0 +1,111 @@
+﻿<h2>Báo cáo đơn đặt bàn</h2>
+
+<form class="mb-4" onsubmit="return false;">
+    <select id="restaurantId">
+        <option value="">-- Tất cả nhà hàng --</option>
+        @foreach (var r in ViewBag.Restaurants)
+        {
+            <option value="@r.Id">@r.Name</option>
+        }
+    </select>
+
+    <select id="groupBy">
+        <option value="Day">Theo ngày</option>
+        <option value="Month" selected>Theo tháng</option>
+        <option value="Year">Theo năm</option>
+    </select>
+
+    <select id="month"></select>
+    <select id="year"></select>
+</form>
+
+<canvas id="confirmedChart" height="120"></canvas>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let chart;
+        const restaurantSelect = document.getElementById('restaurantId');
+        const monthSelect = document.getElementById('month');
+        const yearSelect = document.getElementById('year');
+        const groupBySelect = document.getElementById('groupBy');
+
+        // Fill tháng
+        for (let m = 1; m <= 12; m++)
+            monthSelect.innerHTML += `<option value="${m}">Tháng ${m}</option>`;
+
+        // Fill năm
+        const now = new Date().getFullYear();
+        for (let y = now - 5; y <= now; y++)
+            yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+
+        monthSelect.value = new Date().getMonth() + 1;
+        yearSelect.value = now;
+
+        function updateUI() {
+            const g = groupBySelect.value;
+
+            monthSelect.style.display = g === 'Day' ? 'inline-block' : 'none';
+            yearSelect.style.display = g !== 'Year' ? 'inline-block' : 'none';
+
+            // Disable "Tất cả nhà hàng" khi groupBy = Day hoặc Month
+            restaurantSelect.options[0].disabled = (g === 'Day' || g === 'Month');
+
+            // Nếu đang chọn tất cả nhà hàng mà phải chọn riêng, tự chọn nhà hàng đầu tiên
+            if ((g === 'Day' || g === 'Month') && restaurantSelect.value === "") {
+                restaurantSelect.selectedIndex = 1;
+            }
+        }
+
+        function loadChartData() {
+            updateUI();
+
+            const params = new URLSearchParams({
+                restaurantId: restaurantSelect.value,
+                groupBy: groupBySelect.value,
+                month: monthSelect.value,
+                year: yearSelect.value
+            });
+
+            fetch(`/StaffReport/GetConfirmedReservationData?${params}`)
+                .then(res => res.json())
+                .then(data => {
+                    const labels = data.map(x => x.label);
+                    const values = data.map(x => x.count);
+
+                    if (!chart) {
+                        chart = new Chart(document.getElementById('confirmedChart'), {
+                            type: 'bar',
+                            data: {
+                                labels,
+                                datasets: [{
+                                    label: 'Số đơn đặt bàn thành công',
+                                    data: values,
+                                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { display: false }
+                                },
+                                scales: { y: { beginAtZero: true } }
+                            }
+                        });
+                    } else {
+                        chart.data.labels = labels;
+                        chart.data.datasets[0].data = values;
+                        chart.update();
+                    }
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadChartData);
+        document.querySelectorAll('select').forEach(s =>
+            s.addEventListener('change', loadChartData)
+        );
+    </script>
+}

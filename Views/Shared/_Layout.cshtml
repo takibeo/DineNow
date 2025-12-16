@@ -18,12 +18,9 @@
         isAdmin = await UserManager.IsInRoleAsync(currentUser, "Admin");
         isStaff = await UserManager.IsInRoleAsync(currentUser, "Staff");
 
-        // Lấy số lượng thông báo chưa đọc
         unreadCount = _context.Notifications
             .Where(n => n.UserId == currentUser.Id && !n.IsRead)
             .Count();
-
-        // Lấy 5 thông báo gần nhất
         recentNotifications = _context.Notifications
             .Where(n => n.UserId == currentUser.Id)
             .OrderByDescending(n => n.CreatedAt)
@@ -39,90 +36,162 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - DineNow</title>
 
-    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
 
-    <!-- Fonts & Custom -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <style>
-        .msg {
-            padding: 6px 12px;
-            margin-bottom: 5px;
-            border-radius: 12px;
-            max-width: 75%;
-            word-wrap: break-word;
+        :root {
+            --coral: #ff6b6b;
+            --coral-dark: #ee5a5a;
+            --coral-light: #ffe3e3;
+            --blue: #0d6efd;
+            --gold: linear-gradient(135deg, #ad8a2d, #d4b25e);
+            --bg-main: #f8f9fb;
+            --bg-card: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
         }
 
-            .msg.customer {
-                background: #0d6efd;
-                color: white;
-                margin-left: auto;
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1f2937;
+            background: linear-gradient(180deg, #ffffff, #f5f7fa);
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 112px; /* giữ nguyên chiều cao */
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.92);
+            border-bottom: 1px solid #e5e7eb;
+            transform: translateY(0);
+            transition: transform 0.35s ease, background 0.25s ease, box-shadow 0.25s ease;
+        }
+            .navbar.nav-hidden {
+                transform: translateY(-100%);
+            }
+            .navbar.scrolled {
+                background: rgba(255, 255, 255, 0.98);
+                box-shadow: 0 4px 14px rgba(255,107,107,0.18);
             }
 
-            .msg.admin {
-                background: #e9ecef;
-                color: black;
-                margin-right: auto;
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: var(--coral) !important;
+        }
+
+        .nav-link {
+            color: #1f2937 !important;
+            font-weight: 500;
+            transition: color 0.25s ease;
+        }
+
+            .nav-link:hover {
+                color: var(--coral) !important;
+            }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--coral), #ff9a9a);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease;
+        }
+
+        .user-toggle:hover .user-avatar {
+            transform: scale(1.1) rotate(6deg);
+        }
+
+        .dropdown-menu {
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+            .dropdown-item:hover {
+                background: #eef5ff;
+                transform: translateX(4px);
+                color: #0d6efd;
             }
 
         .btn-upgrade-royal-gold {
-            background: linear-gradient(135deg, #ad8a2d, #d4b25e); /* vàng hoàng gia */
+            background: var(--gold);
             color: #fff !important;
             font-weight: 700;
             padding: 7px 18px;
             border-radius: 30px;
             font-size: 0.92rem;
             text-decoration: none;
-            transition: 0.25s ease;
-            /* hiệu ứng sang trọng */
+            transition: all 0.25s ease;
             box-shadow: 0 3px 8px rgba(0,0,0,0.18);
             border: 1px solid rgba(255,255,255,0.25);
         }
 
             .btn-upgrade-royal-gold:hover {
                 transform: translateY(-2px);
-                background: linear-gradient(135deg, #b9963d, #e0c680); /* sáng hơn chút nhưng không chói */
+                background: linear-gradient(135deg, #b9963d, #e0c680);
                 box-shadow: 0 4px 12px rgba(0,0,0,0.22);
-                color: #fff !important;
             }
-        /* Icon chuông */
+
         .notification-bell {
-            position: relative !important;
-            font-size: 1.45rem !important;
-            cursor: pointer !important;
-            transition: transform 0.2s ease !important;
+            position: relative;
+            font-size: 1.45rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
         }
 
             .notification-bell:hover {
-                transform: scale(1.15) !important;
+                transform: scale(1.15);
             }
 
-        /* Badge đỏ */
         .notification-badge {
-            position: absolute !important;
-            top: -4px !important;
-            right: -6px !important;
-            background: #ff4757 !important;
-            color: #fff !important;
-            font-size: 0.7rem !important;
-            padding: 2px 6px !important;
-            border-radius: 50px !important;
-            font-weight: 600 !important;
-            box-shadow: 0 0 4px rgba(255,0,0,0.6) !important;
+            position: absolute;
+            top: -4px;
+            right: -6px;
+            background: var(--coral);
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 50px;
+            font-weight: 600;
+            box-shadow: 0 0 6px rgba(255,107,107,0.7);
         }
 
-        /* Dropdown */
         .notification-dropdown {
-            width: 360px !important;
-            max-height: 400px !important;
-            overflow-y: auto !important;
-            border-radius: 14px !important;
-            padding: 0 !important;
-            animation: dropdownFade 0.25s ease !important;
+            width: 360px;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 14px;
+            padding: 0;
+            animation: dropdownFade 0.25s ease;
         }
+
         @@keyframes dropdownFade {
             from {
                 opacity: 0;
@@ -135,143 +204,63 @@
             }
         }
 
-        /* Header */
         .notification-header {
-            padding: 12px 16px !important;
-            font-weight: 700 !important;
-            background: #f8f9fc !important;
-            border-bottom: 1px solid #e5e7eb !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 6px !important;
+            padding: 12px 16px;
+            font-weight: 700;
+            background: #f8f9fc;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        /* Item */
         .notification-item {
-            padding: 12px 16px !important;
-            border-bottom: 1px solid #f1f3f5 !important;
-            display: block !important;
-            white-space: normal !important;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f3f5;
         }
 
-        /* Text (FULL, không giới hạn dòng) */
+            .notification-item:hover {
+                background: var(--coral-light);
+            }
+
         .notification-text {
-            white-space: normal !important;
-            overflow-wrap: break-word !important;
-            font-size: 0.95rem !important;
-            line-height: 1.35 !important;
+            font-size: 0.95rem;
+            line-height: 1.35;
+            white-space: normal;
         }
 
-        /* Time */
         .notification-time {
-            font-size: 0.75rem !important;
-            color: #6c757d !important;
-            margin-top: 4px !important;
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 4px;
         }
 
-        /* Hover item */
-        .notification-item:hover {
-            background: #eef5ff !important;
-        }
-
-        /* Footer */
         .view-all {
-            text-align: center !important;
-            padding: 10px !important;
-            font-weight: 600 !important;
-            background: #f8f9fa !important;
+            text-align: center;
+            padding: 10px;
+            font-weight: 600;
+            background: #f8f9fa;
         }
 
             .view-all:hover {
-                background: #e7f0ff !important;
-            }
-        /* === BODY & GENERAL === */
-        body {
-            font-family: 'Inter', sans-serif;
-            color: #1f2937;
-            background: linear-gradient(180deg, #ffffff, #f5f7fa);
-            margin: 0;
-            padding: 0;
-        }
-
-        /* === NAVBAR === */
-        .navbar {
-            backdrop-filter: blur(12px);
-            background: rgba(255,255,255,0.8);
-            transition: all 0.3s ease;
-        }
-
-            .navbar.scrolled {
-                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-                background: rgba(255,255,255,0.95);
+                background: #e7f0ff;
             }
 
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.4rem;
-        }
-
-        .nav-link {
-            color: #1f2937 !important;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-            .nav-link:hover {
-                color: #0d6efd !important;
-                transform: translateY(-1px);
-            }
-        /* === USER AVATAR === */
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6c5ce7, #00b894);
-            color: #fff;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            margin-right: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            transition: transform 0.2s ease-in-out;
-        }
-
-        .user-toggle:hover .user-avatar {
-            transform: scale(1.1) rotate(8deg);
-        }
-
-        .dropdown-menu {
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-radius: 6px;
-            transition: all 0.25s ease;
-        }
-
-            .dropdown-item:hover {
-                background: #eef5ff;
-                transform: translateX(4px);
-                color: #0d6efd;
-            }
-        /* === MAIN CONTENT === */
         main {
-            background: #fff;
-            border-radius: 16px;
-            padding: 32px;
-            box-shadow: 0 4px 25px rgba(0,0,0,0.05);
-            margin-top: 0;
+            padding-top: 132px; 
+            padding-left: 32px;
+            padding-right: 32px;
+            padding-bottom: 32px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
         }
+
 
         footer {
             margin-top: 60px;
         }
-        /* === HERO BANNER === */
+
         .hero-banner {
             position: relative;
             height: 450px;
@@ -286,17 +275,12 @@
             .hero-banner::before {
                 content: '';
                 position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.45);
-                z-index: 0;
+                inset: 0;
+                background: linear-gradient( rgba(255,107,107,0.55), rgba(0,0,0,0.5));
             }
 
         .hero-content {
             position: relative;
-            z-index: 1;
             text-align: center;
         }
 
@@ -312,13 +296,29 @@
                 text-shadow: 1px 1px 8px rgba(0,0,0,0.4);
             }
 
-            .hero-content button {
-                margin-top: 20px;
-                font-weight: 600;
-                padding: 10px 25px;
-                border-radius: 30px;
+        #chatBox {
+            z-index: 1000;
+        }
+
+        .msg {
+            padding: 6px 12px;
+            border-radius: 12px;
+            max-width: 75%;
+            word-wrap: break-word;
+        }
+
+            .msg.customer {
+                background: var(--coral);
+                color: #fff;
+                margin-left: auto;
             }
-        /* === SPLASH SCREEN === */
+
+            .msg.admin {
+                background: #e9ecef;
+                color: black;
+                margin-right: auto;
+            }
+
         #splashScreen {
             position: fixed;
             top: 0;
@@ -382,16 +382,28 @@
                 transform: translateY(0);
             }
         }
+
+        .btn-primary,
+        .btn-coral {
+            background: var(--coral);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+        }
+
+            .btn-primary:hover,
+            .btn-coral:hover {
+                background: var(--coral-dark);
+            }
+
     </style>
 </head>
 <body>
-    <!-- === SPLASH SCREEN === -->
     <div id="splashScreen">
         <img src="/images/logo.png" alt="DineNow Logo" class="splash-logo" />
         <div class="splash-text">DineNow đặt bàn right now</div>
     </div>
 
-    <!-- === NAVBAR === -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container-fluid px-4">
             <a class="navbar-brand d-flex align-items-center" href="/">
@@ -412,14 +424,13 @@
                 <ul class="navbar-nav ms-auto">
                     @if (SignInManager.IsSignedIn(User))
                     {
-                        <!-- 🔔 ICON CHUÔNG -->
                         <li class="nav-item dropdown me-3">
                             <a class="nav-link" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-bell notification-bell"></i>
 
                                 @if (unreadCount > 0)
                                 {
-                                    <span class="notification-badge">@unreadCount</span>
+                                    <span id="bellBadge" class="notification-badge">@unreadCount</span>
                                 }
                             </a>
 
@@ -457,7 +468,6 @@
 
                             </ul>
                         </li>
-                        <!-- ⭐ NÚT PREMIUM - ĐẶT NGANG HÀNG VỚI CHUÔNG -->
                         @if (currentUser != null && !currentUser.IsPremium)
                         {
                             <li class="nav-item d-flex align-items-center me-3">
@@ -467,7 +477,6 @@
                                 </a>
                             </li>
                         }
-                        <!-- Hiển thị trạng thái Premium/Standard -->
                         @if (currentUser != null)
                         {
                             <li class="nav-item d-flex align-items-center me-3">
@@ -476,39 +485,133 @@
                                 </span>
                             </li>
                         }
-                        <!-- Avatar -->
                         <li class="nav-item dropdown d-flex align-items-center">
                             <a class="nav-link dropdown-toggle user-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown">
                                 <span class="user-avatar">@((currentUser?.FullName ?? User.Identity?.Name ?? "U")[0])</span>
                                 <span>@(currentUser?.FullName ?? User.Identity?.Name)</span>
                             </a>
-
-                            <ul class="dropdown-menu dropdown-menu-end mt-2">
-                                <li><a class="dropdown-item" asp-controller="Reservation" asp-action="MyReservations">📅 Lịch đặt bàn</a></li>
-
+                            <ul class="dropdown-menu dropdown-menu-end mt-2 user-menu">
+                                <li class="dropdown-header text-muted small">
+                                    <i class="bi bi-person-circle me-1"></i> Tài khoản
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Reservation" asp-action="MyReservations">
+                                        <i class="bi bi-calendar-check me-2 text-primary"></i>
+                                        Lịch đặt bàn
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Order" asp-action="MyOrders">
+                                        <i class="bi bi-basket3-fill me-2 text-success"></i>
+                                        Đơn đặt đồ ăn của tôi
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Favorite">
+                                        <i class="bi bi-heart-fill me-2 text-danger"></i>
+                                        Nhà hàng yêu thích
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="ActivityHistory">
+                                        <i class="bi bi-clock-history me-2 text-secondary"></i>
+                                        Lịch sử hoạt động
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="EditProfile">
+                                        <i class="bi bi-pencil-square me-2 text-warning"></i>
+                                        Chỉnh sửa thông tin
+                                    </a>
+                                </li>
                                 @if (isStaff)
                                 {
-                                    <li><a class="dropdown-item" asp-controller="Reservation" asp-action="Manage">🧾 Quản lý đặt bàn</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Restaurant" asp-action="Index">🏪 Nhà hàng của bạn</a></li>
-                                    <li><a class="dropdown-item" asp-controller="StaffBilling" asp-action="Index">💵 Hóa đơn và thanh toán</a></li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li class="dropdown-header text-muted small">
+                                        <i class="bi bi-briefcase me-1"></i> Khu vực Staff
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Reservation" asp-action="Manage">
+                                            <i class="bi bi-receipt me-2"></i>
+                                            Quản lý đặt bàn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Order" asp-action="ManageOrders">
+                                            <i class="bi bi-basket3 me-2 text-primary"></i>
+                                            Quản lý đơn đặt đồ ăn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Restaurant" asp-action="Index">
+                                            <i class="bi bi-shop me-2"></i>
+                                            Nhà hàng của bạn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="StaffBilling" asp-action="Index">
+                                            <i class="bi bi-cash-stack me-2"></i>
+                                            Hóa đơn & thanh toán
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="StaffChat" asp-action="StaffRooms">
+                                            <i class="bi bi-chat-dots me-2"></i>
+                                            Tin nhắn khách hàng
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="StaffReport" asp-action="Index">
+                                            <i class="bi bi-bar-chart-line me-2 text-success"></i>
+                                            Báo cáo & thống kê
+                                        </a>
+                                    </li>
                                 }
+
                                 @if (isAdmin)
                                 {
-                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">⚙️ Quản lý tài khoản</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="ManageRestaurants">🏪 Danh sách nhà hàng</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="ManagePayment">💵 Danh sách thanh toán</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Chat" asp-action="Rooms">💬 Danh sách phòng chờ tin nhán</a></li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li class="dropdown-header text-muted small">
+                                        <i class="bi bi-shield-lock me-1"></i> Quản trị hệ thống
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Admin" asp-action="Index">
+                                            <i class="bi bi-gear me-2"></i>
+                                            Quản lý tài khoản
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Admin" asp-action="ManageRestaurants">
+                                            <i class="bi bi-building me-2"></i>
+                                            Danh sách nhà hàng
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Admin" asp-action="ManagePayment">
+                                            <i class="bi bi-credit-card me-2"></i>
+                                            Quản lý thanh toán
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Chat" asp-action="Rooms">
+                                            <i class="bi bi-chat-square-text me-2"></i>
+                                            Phòng chờ tin nhắn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Report" asp-action="Index">
+                                            <i class="bi bi-bar-chart-line me-2 text-success"></i>
+                                            Báo cáo & thống kê
+                                        </a>
+                                    </li>
                                 }
                                 <li><hr class="dropdown-divider" /></li>
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="ActivityHistory">📜 Lịch sử hoạt động</a></li>
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="EditProfile">✏️ Chỉnh sửa thông tin</a></li>
-                                <li><a class="dropdown-item" asp-controller="Home" asp-action="Favorite">❤️ Nhà hàng yêu thích</a></li>
-                                <li><hr class="dropdown-divider" /></li>
-
                                 <li>
                                     <form asp-controller="Account" asp-action="Logout" method="post">
                                         <button type="submit" class="dropdown-item text-danger">
-                                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                            <i class="bi bi-box-arrow-right me-2"></i>
+                                            Đăng xuất
                                         </button>
                                     </form>
                                 </li>
@@ -526,7 +629,6 @@
     </nav>
     @if (SignInManager.IsSignedIn(User) && !isAdmin && !isStaff)
     {
-        <!-- Chat Bubble góc phải dưới -->
         <div id="chatBubble" style="
         position: fixed;
         bottom: 20px;
@@ -534,7 +636,7 @@
         width: 60px;
         height: 60px;
         border-radius: 50%;
-        background-color: #0d6efd;
+        background: var(--coral) !important;
         color: white;
         display: flex;
         justify-content: center;
@@ -562,7 +664,6 @@
         ">!</span>
         </div>
 
-        <!-- Chat Box -->
         <div id="chatBox" style="
         position: fixed;
         bottom: 90px;
@@ -602,7 +703,6 @@
                 </button>
             </div>
 
-            <!-- Container tin nhắn -->
             <div id="chatMessages" style="
             flex: 1;            /* chiếm hết space còn lại */
             overflow-y: auto;   /* scroll khi quá dài */
@@ -624,14 +724,12 @@
             </div>
         </div>
     }
-    <!-- === MAIN CONTENT === -->
     <main role="main">
         @RenderBody()
     </main>
 
     @Html.Partial("_Footer")
 
-    <!-- === SCRIPTS === -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -739,6 +837,48 @@
             });
         </script>
     }
+    <script>
+        window.addEventListener("scroll", () => {
+            const navbar = document.querySelector(".navbar");
+            navbar.classList.toggle("scrolled", window.scrollY > 10);
+        });
+        window.addEventListener("load", () => {
+                const splash = document.getElementById("splashScreen");
+
+                if (sessionStorage.getItem("splashShown")) {
+                    if (splash) splash.remove();
+                    return;
+                }
+                sessionStorage.setItem("splashShown", "true");
+                splash.style.display = "flex";
+                setTimeout(() => {
+                    splash.classList.add("hidden");
+                }, 1800);
+                setTimeout(() => {
+                    splash.remove();
+                }, 2400);
+            });
+                    let lastScrollTop = 0;
+        const navbar = document.querySelector('.navbar');
+        const scrollOffset = 80; 
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            if (scrollTop > 20) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+            if (scrollTop > lastScrollTop && scrollTop > scrollOffset) {
+                navbar.classList.add('nav-hidden');
+            }
+            else {
+                navbar.classList.remove('nav-hidden');
+            }
+
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+        });
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

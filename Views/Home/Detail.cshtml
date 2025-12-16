@@ -61,9 +61,21 @@
                         <i class="bi bi-list-ul"></i> Xem thực đơn
                     </button>
 
-                    <a asp-controller="Reservation" asp-action="Create" asp-route-restaurantId="@Model.Id"
-                       class="btn btn-success btn-rounded btn-book-table">
-                        <i class="bi bi-calendar-check"></i> Đặt bàn ngay
+                    <a asp-controller="Reservation" asp-action="Create"
+                       asp-route-restaurantId="@Model.Id"
+                       class="btn btn-coral btn-rounded btn-book-table">
+                        <i class="bi bi-calendar-check me-1"></i> Đặt bàn ngay
+                    </a>
+                    <a asp-controller="Order" asp-action="CreateOrder"
+                       asp-route-restaurantId="@Model.Id"
+                       class="btn btn-success btn-rounded">
+                        <i class="bi bi-basket3 me-1"></i> Đặt món ăn
+                    </a>
+                    <a asp-controller="StaffChat"
+                       asp-action="CustomerChat"
+                       asp-route-restaurantId="@Model.Id"
+                       class="btn btn-primary btn-rounded">
+                        <i class="bi bi-chat-dots"></i> Chat với nhân viên
                     </a>
 
                     <a asp-action="Index" class="btn btn-outline-secondary btn-rounded">

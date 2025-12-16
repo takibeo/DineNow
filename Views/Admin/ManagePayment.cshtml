@@ -36,8 +36,14 @@
                     <td>@(staff.LastBillMonth?.ToString("MM/yyyy") ?? "Chưa có")</td>
                     <td>
                         @{
-                            string statusText = staff.IsPaid == true ? "Đã thanh toán" : "Chưa thanh toán";
-                            string badgeClass = staff.IsPaid == true ? "bg-success" : "bg-warning text-dark";
+                            string statusText = staff.IsPaid ? "Đã thanh toán" :
+                            staff.IsPending ? "Đang chờ" :
+                            staff.IsRejected ? "Bị từ chối" : "Chưa thanh toán";
+
+                            string badgeClass = staff.IsPaid ? "bg-success" :
+                            staff.IsPending ? "bg-info text-dark" :
+                            staff.IsRejected ? "bg-danger" :
+                            "bg-warning text-dark";
                         }
                         <span class="badge @badgeClass" id="@statusId">@statusText</span>
                     </td>
@@ -49,7 +55,7 @@
                             && (!staff.LastBillMonth.HasValue
                             || staff.LastBillMonth.Value.Month != now.Month
                             || staff.LastBillMonth.Value.Year != now.Year
-                            || staff.IsPaid == false);
+                            || staff.Status != DoAnChuyenNganh.Models.BillingStatus.Accepted);
                         }
                         <button class="btn btn-primary btn-sm" id="@btnId"
                                 onclick="createBill('@staffId', '@staff.StaffName')"
@@ -57,7 +63,7 @@
                             <i class="bi bi-receipt"></i> Tạo hóa đơn
                         </button>
 
-                        <span id="@approveId" style="display:@(staff.LastBillMonth.HasValue ? "inline-block" : "none")">
+                        <span id="@approveId" style="display:@(staff.Status == DoAnChuyenNganh.Models.BillingStatus.Pending ? "inline-block" : "none")">
                             <button class="btn btn-success btn-sm ms-1"
                                     onclick="acceptPayment('@staffId', '@staff.StaffName')">
                                 <i class="bi bi-check2-circle"></i> Chấp nhận
@@ -88,12 +94,13 @@
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         $(document).ready(function () {
             $('#managePaymentTable').DataTable({
                 responsive: true,
                 pageLength: 10,
-                order: [[2, "desc"]], // Sắp xếp theo cột lần tạo bill gần nhất
+                order: [[2, "desc"]],
                 dom: 'Bfrtip',
                 buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
                 language: {
@@ -110,7 +117,29 @@
                 }
             });
         });
-         // Tạo hóa đơn
+
+        function updateStatusBadge(staffId, status) {
+            const statusElem = document.getElementById(`status-${staffId}`);
+            switch(status) {
+                case 'Accepted':
+                    statusElem.textContent = "Đã thanh toán";
+                    statusElem.className = "badge bg-success";
+                    break;
+                case 'Pending':
+                    statusElem.textContent = "Đang chờ";
+                    statusElem.className = "badge bg-info text-dark";
+                    break;
+                case 'Rejected':
+                    statusElem.textContent = "Bị từ chối";
+                    statusElem.className = "badge bg-danger";
+                    break;
+                default:
+                    statusElem.textContent = "Chưa thanh toán";
+                    statusElem.className = "badge bg-warning text-dark";
+            }
+        }
+
+        // Tạo hóa đơn
         function createBill(staffId, staffName) {
             const btn = document.getElementById(`btn-create-${staffId}`);
             if (btn.disabled) return;
@@ -128,11 +157,9 @@
                             timer: 1500
                         });
 
-                        const status = document.getElementById(`status-${staffId}`);
-                        status.textContent = "Chưa thanh toán";
-                        status.className = "badge bg-warning text-dark";
+                        updateStatusBadge(staffId, 'Pending');
 
-                        // Hiện nút Chấp nhận / Từ chối luôn
+                        // Hiện nút Chấp nhận / Từ chối
                         document.getElementById(`approve-buttons-${staffId}`).style.display = "inline-block";
                     } else {
                         Swal.fire('Lỗi!', data.message, 'error');
@@ -158,14 +185,8 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
-                                // disable nút tạo bill
                                 document.getElementById(`btn-create-${staffId}`).disabled = true;
-
-                                const status = document.getElementById(`status-${staffId}`);
-                                status.textContent = "Đã thanh toán";
-                                status.className = "badge bg-success";
-
-                                // Ẩn nút approve/reject
+                                updateStatusBadge(staffId, 'Accepted');
                                 document.getElementById(`approve-buttons-${staffId}`).style.display = "none";
 
                                 Swal.fire({
@@ -200,14 +221,8 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
-                                // Enable nút tạo bill lại
                                 document.getElementById(`btn-create-${staffId}`).disabled = false;
-
-                                const status = document.getElementById(`status-${staffId}`);
-                                status.textContent = "Chưa thanh toán";
-                                status.className = "badge bg-warning text-dark";
-
-                                // Ẩn nút approve/reject
+                                updateStatusBadge(staffId, 'Rejected');
                                 document.getElementById(`approve-buttons-${staffId}`).style.display = "none";
 
                                 Swal.fire({

@@ -9,8 +9,10 @@ using Microsoft.AspNetCore.Identity;
 
     // 1️⃣ Thêm MVC
     builder.Services.AddControllersWithViews();
-    // 2️⃣ Cấu hình DbContext
-    builder.Services.AddDbContext<AppDBContext>(options =>
+    builder.Services.AddSession();
+    builder.Services.AddHttpContextAccessor();
+// 2️⃣ Cấu hình DbContext
+builder.Services.AddDbContext<AppDBContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
     // 3️⃣ Cấu hình Identity
@@ -94,9 +96,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     app.UseStaticFiles();
 
     app.UseRouting();
-
-    // 🔒 Bắt buộc có để đăng nhập hoạt động
-    app.UseAuthentication();
+    app.UseSession();
+// 🔒 Bắt buộc có để đăng nhập hoạt động
+app.UseAuthentication();
     app.UseAuthorization();
 
     // 8️⃣ Routing mặc định

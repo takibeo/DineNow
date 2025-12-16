@@ -17,6 +17,8 @@ namespace DoAnChuyenNganh.Services
 
         private const decimal FeePerRestaurant = 300000m;
         private const decimal FeePerReservation = 5000m;
+        private const decimal AdminCommissionRate = 0.08m; 
+
 
         public BillingService(IVnPayService vnPayService, UserManager<User> userManager, AppDBContext context)
         {
@@ -95,8 +97,8 @@ namespace DoAnChuyenNganh.Services
                                 && r.ReservationDate < endDate)
                     .CountAsync();
 
-                decimal restaurantFee = restaurantIds.Count * 300000m;
-                decimal reservationFee = reservationCount * 5000m;
+                decimal restaurantFee = restaurantIds.Count * FeePerRestaurant;
+                decimal reservationFee = reservationCount * FeePerReservation;
                 decimal totalFee = restaurantFee + reservationFee;
 
                 if (totalFee <= 0)
@@ -111,7 +113,7 @@ namespace DoAnChuyenNganh.Services
                     RestaurantFee = restaurantFee,
                     ReservationFee = reservationFee,
                     TotalFee = totalFee,
-                    IsPaid = false
+                    Status = BillingStatus.Unpaid // Mặc định chưa thanh toán
                 };
 
                 _context.StaffBillings.Add(bill);
@@ -127,6 +129,7 @@ namespace DoAnChuyenNganh.Services
                 return bill;
             }
         }
+
         /// <summary>
         /// Callback VnPay xử lý thanh toán
         /// </summary>
@@ -152,9 +155,59 @@ namespace DoAnChuyenNganh.Services
 
             if (response.VnPayResponseCode == "00") // Thanh toán thành công
             {
-                bill.IsPaid = true;
+                // Thay vì IsPaid = true, chuyển sang Pending
+                bill.Status = BillingStatus.Pending;
                 await _context.SaveChangesAsync();
             }
+
+            return response;
+        }
+
+        public string CreateOrderPaymentUrl(User user, Order order, HttpContext context)
+        {
+            var pay = new VnPayLibrary();
+            var urlCallBack = $"{context.Request.Scheme}://{context.Request.Host}/Order/PaymentCallback";
+
+            pay.AddRequestData("vnp_Version", "2.1.0");
+            pay.AddRequestData("vnp_Command", "pay");
+            pay.AddRequestData("vnp_TmnCode", "J6ESPHTB"); // Thay bằng Terminal code của bạn
+            pay.AddRequestData("vnp_Amount", ((long)(order.TotalAmount * 100)).ToString());
+            pay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+            pay.AddRequestData("vnp_CurrCode", "VND");
+            pay.AddRequestData("vnp_IpAddr", pay.GetIpAddress(context));
+            pay.AddRequestData("vnp_Locale", "vn");
+            pay.AddRequestData("vnp_OrderInfo", $"{user.UserName}|Order|{order.Id}");
+            pay.AddRequestData("vnp_OrderType", "billpayment");
+            pay.AddRequestData("vnp_ReturnUrl", urlCallBack);
+            pay.AddRequestData("vnp_TxnRef", DateTime.Now.Ticks.ToString());
+
+            return pay.CreateRequestUrl(
+                "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+                "32474NEVXK67VU51M6KUZ082TINHYFI5"
+            );
+        }
+        public async Task<PaymentResponseModel> ExecuteOrderVnPayCallback(IQueryCollection query)
+        {
+            var response = _vnPayService.PaymentExecute(query);
+            if (!response.Success) return response;
+
+            var parts = response.OrderDescription.Split('|');
+            if (parts.Length != 3) return response;
+
+            var userName = parts[0];
+            var orderId = int.Parse(parts[2]);
+
+            var user = await _userManager.FindByNameAsync(userName);
+            var order = await _context.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (user == null || order == null) return response;
+
+            if (response.VnPayResponseCode == "00") // Thanh toán thành công
+            {
+                order.Status = "Paid";
+                await _context.SaveChangesAsync();
+            }
+
 
             return response;
         }

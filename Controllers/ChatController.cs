@@ -111,14 +111,13 @@ public class ChatController : Controller
         // Xử lý cảnh báo nếu là Customer
         if (!isAdmin && bad)
         {
-            me.WarningCount++; // tăng số cảnh báo
+            me.WarningCount++; 
             _ctx.Users.Update(me);
 
-            // Khóa tài khoản nếu quá 5 lần cảnh báo trong 24h
             if (me.WarningCount >= 5)
             {
                 me.IsActive = false;
-                me.LockedAt = DateTime.Now; // thêm trường LockedAt để mở lại sau 1 ngày
+                me.LockedAt = DateTime.Now; 
             }
         }
 
@@ -132,10 +131,8 @@ public class ChatController : Controller
             return Json(new { ok = false, msg = "Tin nhắn không hợp lệ!" });
 
         return Json(new { ok = true, msg = "Đã gửi" });
-    }
-    // ===========================
-    // LOAD TIN NHẮN
-    // ===========================
+    } 
+
     public async Task<IActionResult> Load(int roomId)
     {
         var me = await _user.GetUserAsync(User);
@@ -152,11 +149,11 @@ public class ChatController : Controller
         if (!isAdmin && room.CustomerId != me.Id)
             return Json(new { error = "Forbidden" });
 
-        // Lấy thời điểm xóa cuối cùng
+        
         DateTime? lastDeleted = isAdmin ? room.LastDeletedByAdmin : room.LastDeletedByCustomer;
 
         var messages = room.Messages
-            .Where(m => lastDeleted == null || m.CreatedAt > lastDeleted) // chỉ ẩn tin nhắn cũ
+            .Where(m => lastDeleted == null || m.CreatedAt > lastDeleted) 
             .OrderBy(m => m.CreatedAt)
             .Select(m => new
             {
@@ -173,9 +170,6 @@ public class ChatController : Controller
         return Json(messages);
     }
 
-    // ===========================
-    // ADMIN LIST ROOMS
-    // ===========================
     public async Task<IActionResult> Rooms()
     {
         var me = await _user.GetUserAsync(User);
@@ -183,7 +177,7 @@ public class ChatController : Controller
 
         var rooms = await _ctx.ChatRooms
             .Include(r => r.Messages)
-            .Where(r => !r.DeletedByAdmin) // ẩn room Admin đã xóa
+            .Where(r => !r.DeletedByAdmin) 
             .ToListAsync();
 
         var ids = rooms.Select(r => r.CustomerId).ToList();
@@ -194,10 +188,9 @@ public class ChatController : Controller
             u => string.IsNullOrEmpty(u.FullName) ? u.Email : u.FullName
         );
 
-        // Tính tin nhắn mới cho Admin
         var newMessages = rooms.ToDictionary(
             r => r.Id,
-            r => r.Messages.Any(m => m.UserId == r.CustomerId // chỉ tính tin nhắn của Customer
+            r => r.Messages.Any(m => m.UserId == r.CustomerId 
                                      && (r.LastReadByAdmin == null || m.CreatedAt > r.LastReadByAdmin)
                                      && (r.LastDeletedByAdmin == null || m.CreatedAt > r.LastDeletedByAdmin)
                    )
@@ -207,9 +200,6 @@ public class ChatController : Controller
         return View(rooms);
     }
 
-    // ===========================
-    // XÓA TIN NHẮN 1 PHÍA
-    // ===========================
     [HttpPost]
     public async Task<IActionResult> DeleteChat(int id)
     {
@@ -226,13 +216,11 @@ public class ChatController : Controller
 
         if (isAdmin)
         {
-            // Ẩn tin nhắn với Admin, Customer vẫn thấy
             room.DeletedByAdmin = true;
             room.LastDeletedByAdmin = DateTime.Now;
         }
         else
         {
-            // Ẩn tin nhắn với Customer, Admin vẫn thấy
             room.DeletedByCustomer = true;
             room.LastDeletedByCustomer = DateTime.Now;
         }

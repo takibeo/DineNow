@@ -3,6 +3,15 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DoAnChuyenNganh.Models
 {
+    // Enum trạng thái thanh toán
+    public enum BillingStatus
+    {
+        Unpaid,   
+        Pending,  
+        Accepted,  
+        Rejected   
+    }
+
     public class StaffBilling
     {
         public int Id { get; set; }
@@ -20,6 +29,7 @@ namespace DoAnChuyenNganh.Models
         public decimal ReservationFee { get; set; }     // 5k * số lượt đặt bàn
 
         public decimal TotalFee { get; set; }           // Tổng phí
-        public bool IsPaid { get; set; } = false;      // Thanh toán chưa
+
+        public BillingStatus Status { get; set; } = BillingStatus.Unpaid;
     }
 }

@@ -1,0 +1,88 @@
+﻿@{
+    ViewData["Title"] = "Doanh thu bán đồ ăn";
+    var restaurants = ViewBag.Restaurants as List<DoAnChuyenNganh.Models.Restaurant>;
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form class="mb-4" onsubmit="return false;">
+    <select id="restaurantId" class="form-select d-inline w-auto me-2">
+        <option value="">-- Tất cả nhà hàng --</option>
+        @foreach (var r in restaurants)
+        {
+            <option value="@r.Id">@r.Name</option>
+        }
+    </select>
+
+    <select id="year" class="form-select d-inline w-auto me-2"></select>
+</form>
+
+<canvas id="revenueChart" height="120"></canvas>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let chart;
+
+        const restaurantSelect = document.getElementById('restaurantId');
+        const yearSelect = document.getElementById('year');
+
+        // ===== Tạo danh sách năm =====
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear - 5; y <= currentYear; y++) {
+            yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+        }
+        yearSelect.value = currentYear;
+
+        function loadChart() {
+            const params = new URLSearchParams({
+                groupBy: "Month",
+                year: yearSelect.value
+            });
+
+            if (restaurantSelect.value) {
+                params.append("restaurantId", restaurantSelect.value);
+            }
+
+            fetch(`/StaffReport/GetFoodOrderRevenue?${params}`)
+                .then(res => res.json())
+                .then(data => {
+
+                    const labels = data.map(x => x.label);
+                    const values = data.map(x => x.value);
+
+                    if (!chart) {
+                        chart = new Chart(document.getElementById('revenueChart'), {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Doanh thu (VNĐ)',
+                                    data: values
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            callback: v => v.toLocaleString()
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        chart.data.labels = labels;
+                        chart.data.datasets[0].data = values;
+                        chart.update();
+                    }
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadChart);
+        restaurantSelect.addEventListener('change', loadChart);
+        yearSelect.addEventListener('change', loadChart);
+    </script>
+}

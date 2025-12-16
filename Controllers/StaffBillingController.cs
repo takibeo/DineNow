@@ -22,7 +22,6 @@ namespace DoAnChuyenNganh.Controllers
             _billingService = billingService;
         }
 
-        // 🔔 Hàm SaveNotification giống AdminController
         private async Task SaveNotification(string userId, string message)
         {
             var sender = await _userManager.GetUserAsync(User);
@@ -64,9 +63,9 @@ namespace DoAnChuyenNganh.Controllers
             var bill = await _context.StaffBillings.FindAsync(id);
             if (bill == null || user == null) return NotFound();
 
-            if (bill.IsPaid)
+            if (bill.Status == BillingStatus.Pending || bill.Status == BillingStatus.Accepted)
             {
-                TempData["Info"] = "Bạn đã thanh toán bill này rồi.";
+                TempData["Info"] = "Bill này đã được thanh toán hoặc đang chờ Admin duyệt.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -82,14 +81,23 @@ namespace DoAnChuyenNganh.Controllers
 
             if (response.Success && response.VnPayResponseCode == "00")
             {
-                TempData["Success"] = "Thanh toán phí hàng tháng thành công!";
+                var bill = await _context.StaffBillings
+                    .Where(b => b.UserId == user.Id && b.Month.Year == DateTime.Now.Year && b.Month.Month == DateTime.Now.Month)
+                    .FirstOrDefaultAsync();
 
-                // 🔔 Gửi thông báo đến tất cả Admin
-                var admins = await _userManager.GetUsersInRoleAsync("Admin");
-                foreach (var admin in admins)
+                if (bill != null)
                 {
-                    string message = $"Staff {user.FullName} vừa thanh toán hóa đơn tháng {DateTime.Now:MM/yyyy}.";
-                    await SaveNotification(admin.Id, message);
+                    bill.Status = BillingStatus.Pending; // Thanh toán xong → Pending chờ Admin duyệt
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = "Thanh toán phí hàng tháng thành công! Đang chờ Admin duyệt.";
+
+                    var admins = await _userManager.GetUsersInRoleAsync("Admin");
+                    foreach (var admin in admins)
+                    {
+                        string message = $"Staff {user.FullName} vừa thanh toán hóa đơn tháng {bill.Month:MM/yyyy}. Đang chờ Admin duyệt.";
+                        await SaveNotification(admin.Id, message);
+                    }
                 }
             }
             else
@@ -121,11 +129,18 @@ namespace DoAnChuyenNganh.Controllers
 
             var bill = await _billingService.CalculateMonthlyFee(user.Id, year, month);
 
-            // 🔔 Thông báo cho Staff
-            string notiMessage = $"Hóa đơn tháng {month}/{year} đã được tạo. Vui lòng thanh toán trong 5 ngày.";
-            await SaveNotification(user.Id, notiMessage);
+            if (bill != null)
+            {
+                bill.Status = BillingStatus.Unpaid; // Mới tạo → chưa thanh toán
+                _context.StaffBillings.Add(bill);
+                await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Bill tháng {month}/{year} đã được tạo thành công! Tổng phí: {bill.TotalFee:N0} đ";
+                string notiMessage = $"Hóa đơn tháng {month}/{year} đã được tạo. Vui lòng thanh toán trong 5 ngày.";
+                await SaveNotification(user.Id, notiMessage);
+
+                TempData["Success"] = $"Bill tháng {month}/{year} đã được tạo thành công! Tổng phí: {bill.TotalFee:N0} đ";
+            }
+
             return RedirectToAction(nameof(Index));
         }
     }

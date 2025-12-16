@@ -21,6 +21,7 @@ namespace DoAnChuyenNganh.Models
         public bool IsApproved { get; set; } = false;
 
         // Relationships
+        public ICollection<Order> Orders { get; set; } = new List<Order>();
         public ICollection<MenuItem>? MenuItems { get; set; }
         public ICollection<Reservation>? Reservations { get; set; }
         public ICollection<Review>? Reviews { get; set; }

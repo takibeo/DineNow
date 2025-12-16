@@ -1,12 +1,12 @@
-﻿@model IEnumerable<ChatRoom>
+﻿@model IEnumerable<DoAnChuyenNganh.Models.ChatRoom>
 
 @{
-    ViewData["Title"] = "Danh sách phòng chat";
+    ViewData["Title"] = "Danh sách phòng chat với Customer";
     var names = ViewBag.UserNames as Dictionary<string, string>;
     var newMessages = ViewBag.NewMessages as Dictionary<int, bool>;
 }
 
-<h2>Danh sách phòng chat</h2>
+<h2>Danh sách phòng chat với Customer</h2>
 
 <table class="table table-bordered">
     <thead>
@@ -32,7 +32,7 @@
                     }
                 </td>
                 <td>
-                    <a class="btn btn-primary" href="/Chat/Admin/@r.Id">Vào chat</a>
+                    <a class="btn btn-primary" href="/StaffChat/Staff/@r.Id">Vào chat</a>
                     <button class="btn btn-danger delete-room" data-room="@r.Id">Xóa</button>
                 </td>
             </tr>
@@ -47,23 +47,23 @@
         let room = $(this).data("room");
         Swal.fire({
             title: "Xóa phòng chat?",
-            text: "Tin nhắn Admin sẽ bị xóa, nhưng Customer vẫn xem được.",
+            text: "Tin nhắn Staff sẽ bị xóa, nhưng Customer vẫn xem được.",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#d33",
             cancelButtonColor: "#6c757d",
             confirmButtonText: "Xóa",
             cancelButtonText: "Hủy"
-        }).then(r => {
-            if(r.isConfirmed){
+        }).then((result) => {
+            if(result.isConfirmed){
                 $.ajax({
-                    url: '/Chat/DeleteChat',
+                    url: '/StaffChat/DeleteChat',
                     type: 'POST',
                     data: { id: room },
                     success: function(res) {
                         if(res.ok){
                             Swal.fire("Đã xóa!", res.msg, "success").then(() => {
-                                location.reload();
+                                location.reload(); // reload page để cập nhật danh sách
                             });
                         } else {
                             Swal.fire("Lỗi", res.msg, "error");

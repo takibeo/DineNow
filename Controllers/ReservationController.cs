@@ -83,14 +83,14 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             // ✅ Server-side check: giờ đặt không được nhỏ hơn hiện tại
-            /*if (reservation.ReservationDate < DateTime.Now)
+            if (reservation.ReservationDate < DateTime.Now)
             {
                 return Json(new
                 {
                     success = false,
                     message = "Không thể đặt bàn ở giờ đã trôi qua!"
                 });
-            }*/
+            }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             reservation.UserId = userId;
